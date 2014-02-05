@@ -7,6 +7,8 @@
 *.cmx
 *.cmxs
 *.cmxa
-_build
+_build/
 Ipython_json_*
-
+iocaml.log
+.*.swp
+*~
