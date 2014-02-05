@@ -8,4 +8,5 @@
 *.cmxs
 *.cmxa
 _build
+Ipython_json_*
 
