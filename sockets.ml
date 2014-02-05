@@ -1,3 +1,13 @@
+(* 
+ * iocaml - an OCaml kernel for IPython
+ *
+ *   (c) 2014 MicroJamJar Ltd
+ *
+ * Author(s): andy.ray@ujamjar.com
+ * Description: handle zmq sockets
+ *
+ *)
+
 let context = ZMQ.init ()
 let () = at_exit 
     (fun () ->

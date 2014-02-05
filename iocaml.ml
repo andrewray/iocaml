@@ -1,3 +1,12 @@
+(* 
+ * iocaml - an OCaml kernel for IPython
+ *
+ *   (c) 2014 MicroJamJar Ltd
+ *
+ * Author(s): andy.ray@ujamjar.com
+ * Description: Top level loop and socket communications.
+ *
+ *)
 
 (* code execution in the top level *)
 module Exec = struct

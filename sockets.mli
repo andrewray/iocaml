@@ -1,3 +1,13 @@
+(* 
+ * iocaml - an OCaml kernel for IPython
+ *
+ *   (c) 2014 MicroJamJar Ltd
+ *
+ * Author(s): andy.ray@ujamjar.com
+ * Description: handle zmq sockets
+ *
+ *)
+
 type sockets = 
     {
         shell : [`Router] ZMQ.Socket.t;
