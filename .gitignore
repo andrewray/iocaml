@@ -12,3 +12,5 @@ Ipython_json_*
 iocaml.log
 .*.swp
 *~
+notebooks/.ipynb_checkpoints/
+
