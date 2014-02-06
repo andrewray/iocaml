@@ -20,7 +20,7 @@ let log =
 let time() = 
     let open Unix in
     let tm = localtime (time ()) in
-    Printf.sprintf "%i/%i/%i %i:%i:%i" 
+    Printf.sprintf "%i/%i/%i %.2i:%.2i:%.2i" 
         tm.tm_mday (tm.tm_mon+1) (tm.tm_year+1900) tm.tm_hour tm.tm_min tm.tm_sec
 
 (* log time and command line *)

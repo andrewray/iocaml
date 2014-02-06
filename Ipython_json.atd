@@ -61,8 +61,8 @@ type execute_reply = {
     ?traceback : string list option;
     (* if execution was ok *)
     ?payload : payload list option;
-    ?er_user_variables : dyn option;
-    ?er_user_expressions : dyn option;
+    ?er_user_variables <json name="user_variables"> : dyn option;
+    ?er_user_expressions <json name="user_expressions"> : dyn option;
 }
 
 (*********************************************************************)

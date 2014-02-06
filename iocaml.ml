@@ -39,35 +39,35 @@ module Exec = struct
 
 end
 
-module Shell = struct
+module Stdio = struct
 
-    open Ipython_json_t 
-    open Message
-    open Sockets
+    type o_file = 
+        {
+            o_perv : Pervasives.out_channel;
+            o_unix : Unix.file_descr;
+            o_name : string;
+        }
+    type i_file = 
+        {
+            i_perv : Pervasives.in_channel;
+            i_unix : Unix.file_descr;
+            i_name : string;
+        }
 
-    (* example mime types
-        text/plain
-        text/html
-        application/json
-        application/javascript
-        image/png
-        image/jpeg
-        image/svg+xml
-    *)
-
-    let set_state sockets msg state = 
-        send_h sockets.iopub msg (Status { execution_state = state })
-
-    (* redirect stdio to pipes so we can capture and send them to the frontend *)
-    let redirect_stdio () = 
+    let redirect () = 
+        (* convert channels to binary mode. *)
+        let () = 
+            set_binary_mode_in stdin true;
+            set_binary_mode_out stdout true;
+            set_binary_mode_out stdout true
+        in
         let stdin_p, stdin = Unix.pipe() in
         let stdout, stdout_p = Unix.pipe() in
         let stderr, stderr_p = Unix.pipe() in
+        let mime_r, mime_w = Unix.pipe() in
         let () = Unix.dup2 stdin_p Unix.stdin in
         let () = Unix.dup2 stdout_p Unix.stdout in
         let () = Unix.dup2 stderr_p Unix.stderr in
-        let () = Unix.set_nonblock stdout in
-        let () = Unix.set_nonblock stderr in
         let () = at_exit 
             (fun () ->
                 Unix.close stdin;
@@ -75,102 +75,196 @@ module Shell = struct
                 Unix.close stdout;
                 Unix.close stdout_p;
                 Unix.close stderr;
-                Unix.close stderr_p)
+                Unix.close stderr_p;
+                Unix.close mime_r;
+                Unix.close mime_w)
         in
-        stdin, stdout, stderr
+        {
+            i_perv = Pervasives.stdin;
+            i_unix = stdin;
+            i_name = "stdin";
+        },
+        {
+            o_perv = Pervasives.stdout;
+            o_unix = stdout;
+            o_name = "stdout";
+        },
+        {
+            o_perv = Pervasives.stderr;
+            o_unix = stderr;
+            o_name = "stderr";
+        },
+        {
+            i_perv = Unix.in_channel_of_descr mime_r;
+            i_unix = mime_r;
+            i_name = "mime";
+        },
+        {
+            o_perv = Unix.out_channel_of_descr mime_w;
+            o_unix = mime_w;
+            o_name = "mime";
+        }
 
-    let mime_type = ref ""
-    let base64 = ref false
-    let suppress_stdout = ref false
-    let suppress_stderr = ref false
+end
+
+module Shell = struct
+
+    open Ipython_json_t 
+    open Message
+    open Sockets
+    open Stdio
+
+    type iopub_message = 
+        | Iopub_set_current of message
+        | Iopub_send_message of message_content
+        | Iopub_suppress_stdout of bool
+        | Iopub_suppress_stderr of bool
+        | Iopub_flush
+        | Iopub_send_mime of string * bool
+        | Iopub_stop
+
+    let mime_message_content mime_type base64 data = 
+        let data = 
+            if not base64 then data
+            else Cryptokit.(transform_string (Base64.encode_multiline()) data)
+        in
+        (Message.Display_data (Ipython_json_j.({
+            dd_source = "ocaml";
+            dd_data = `Assoc [mime_type,`String data];
+            dd_metadata = `Assoc [];
+        })))
+
+    let handle_iopub (stdin,stdout,stderr,mime,_) (ctrl,resp) socket = 
+        
+        let rd_select r s a = 
+            let r',_,_ = Thread.select (List.map fst r) [] [] s in
+            List.fold_left (fun a (r,f) -> if List.mem r r' then f a else a) a r
+        in
+
+        let rec rd_select_loop r s a = 
+            let stop = rd_select r s a in
+            if stop then ()
+            else rd_select_loop r s a
+        in
+        
+        let msg = ref None in
+        let suppress_stdout = ref false in
+        let suppress_stderr = ref false in
+
+        let send_output std suppress = 
+            let buffer = String.create 1024 in
+            let b_len = 1024 in
+            fun _ ->
+                let r_len = Unix.read std.o_unix buffer 0 b_len in
+                match !msg, r_len, !suppress with
+                | Some(msg), x, false when x <> 0 ->
+                    let st_data = String.sub buffer 0 r_len in
+                    send_h socket msg (Stream { st_name=std.o_name; st_data; });
+                    false
+                | _ -> false
+        in
+
+        let send_flush std suppress = 
+            while Thread.select [std.o_unix] [] [] 0.0 <> ([],[],[]) do
+                ignore (send_output std suppress ())
+            done
+        in
+
+        let send_message content = 
+            match !msg with
+            | Some(msg) -> send_h socket msg content; false
+            | None -> false
+        in
+
+        let mime_buffer = Buffer.create 1024 in
+        let store_mime =
+            let buffer = String.create 1024 in
+            let b_len = 1024 in
+            (fun _ ->
+                let r_len = Unix.read mime.i_unix buffer 0 b_len in
+                Buffer.add_substring mime_buffer buffer 0 r_len;
+                false)
+        in   
+        let send_mime mime_type base64 = 
+            (* flush the mime channel *)
+            while Thread.select [mime.i_unix] [] [] 0.0 <> ([],[],[]) do
+                ignore (store_mime false)
+            done;
+            (* send mime message *)
+            let data = Buffer.contents mime_buffer in
+            let () = Buffer.clear mime_buffer in
+            send_message (mime_message_content mime_type base64 data)
+        in
+
+        let ctrl_message _ = 
+            let res = 
+                match Marshal.from_channel ctrl.i_perv with
+                | Iopub_set_current(m) -> msg := Some(m); false
+                | Iopub_suppress_stdout(b) -> suppress_stdout := b; false
+                | Iopub_suppress_stderr(b) -> suppress_stderr := b; false
+                | Iopub_send_message(content) -> send_message content
+                | Iopub_flush -> send_flush stdout suppress_stdout;
+                                 send_flush stderr suppress_stderr; false
+                | Iopub_send_mime(mime_type,base64) -> send_mime mime_type base64
+                | Iopub_stop -> true
+            in
+            output_char resp 'x'; flush resp;
+            res
+        in
+
+        rd_select_loop
+            [
+                stdout.o_unix, send_output stdout suppress_stdout;
+                stderr.o_unix, send_output stderr suppress_stderr;
+                mime.i_unix, store_mime;
+                ctrl.i_unix, ctrl_message;
+            ] (-1.) false
+
     let suppress_compiler = ref false
 
-    let set_suppress s = 
-        let in_words s = (* from findlib Fl_split.in_words *)
-            (* splits s in words separated by commas and/or whitespace *)
-            let l = String.length s in
-            let rec split i j =
-                if j < l then
-                    match s.[j] with
-                    (' '|'\t'|'\n'|'\r'|',') ->
-                        if i<j then (String.sub s i (j-i)) :: (split (j+1) (j+1))
-                        else split (j+1) (j+1)
-                    |    _ ->
-                        split i (j+1)
-                else
-                    if i<j then [ String.sub s i (j-i) ] else []
-          in
-            split 0 0
+    let start_iopub stdio socket = 
+        let r0,w0 = Unix.pipe () in
+        let r1,w1 = Unix.pipe () in
+        let _ = Thread.create
+            (fun () -> 
+                handle_iopub stdio
+                    ({ i_perv = Unix.in_channel_of_descr r0; 
+                       i_unix = r0; 
+                       i_name = "iopub" }, 
+                     Unix.out_channel_of_descr w1)
+                    socket) ()
         in
-        let words = try in_words s with _ -> [] in
-        List.iter (function
-            | "compiler" -> suppress_compiler := true
-            | "stdout" -> suppress_stdout := true
-            | "stderr" -> suppress_stderr := true
-            | "all" -> (suppress_compiler := true; suppress_stderr := true; suppress_stdout := true)
-            | _ -> ()) words
-
-    let () = Hashtbl.add Toploop.directive_table "mime" 
-        (Toploop.Directive_string (fun s -> mime_type := s))
-    let () = Hashtbl.add Toploop.directive_table "mime64" 
-        (Toploop.Directive_string (fun s -> mime_type := s; base64 := true))
-    let () = Hashtbl.add Toploop.directive_table "suppress" 
-        (Toploop.Directive_string (fun s -> set_suppress s))
-
-    (* read stdout (and stderr) *)
-    let read_stdout =
-        let b_len = 1024 in
-        let buffer = String.create b_len in
-        let rec read stdout =
-            try (* read until we would block *)
-                let r_len = Unix.read stdout buffer 0 b_len in
-                let str = String.sub buffer 0 r_len in
-                str ^ read stdout
-            with _ -> ""
-        in
-        read
+        let w0 = Unix.out_channel_of_descr w0 in
+        let r1 = Unix.in_channel_of_descr r1 in
+        (* return a function to send messages to the iopub thread *)
+        (fun message ->
+            Marshal.to_channel w0 message [];
+            flush w0;
+            ignore (input_char r1))
 
     (* execute code *)
     let execute = 
         let execution_count = ref 0 in
-        (fun sockets (stdin,stdout,stderr) msg e ->
-
-            (* XXX clear state *)
-            mime_type := "";
-            base64 := false;
-            suppress_compiler := false;
-            suppress_stdout := false;
-            suppress_stderr := false;
+        (fun sockets send_iopub msg e ->
 
             (* if we are not silent increment execution count *)
             (if not e.silent then incr execution_count);
 
             (* set state to busy *)
-            set_state sockets msg "busy";
-            send_h sockets.iopub msg
+            send_iopub (Iopub_set_current msg);
+            send_iopub (Iopub_send_message (Status { execution_state = "busy" }));
+            send_iopub (Iopub_send_message
                     (Pyin {
                         pi_code = e.code;
                         pi_execution_count = !execution_count;
-                    });
+                    }));
 
             (* eval code *)
             let status = Exec.run_cell !execution_count (Lexing.from_string e.code) in
-
-            (* stdout and stderr *)
-            let t_stdout = (Pervasives.stdout, stdout, "stdout") in
-            let t_stderr = (Pervasives.stderr, stderr, "stderr") in
-
-            (* messaging helpers *)
-            let send_stream st_name st_data = 
-                if st_data <> "" then send_h sockets.iopub msg (Stream { st_name; st_data })
-            in
-            let read_stdout (ps,us) = flush ps; read_stdout us in
-            let send_stream_stdout (ps,us,ns) suppress = 
-                let str = read_stdout (ps,us) in
-                if not suppress then send_stream ns str
-            in
-            let send_display_data mime base64 (ps,us,ns) = 
-                let str = read_stdout (ps,us) in
+            Pervasives.(flush stdout; flush stderr); send_iopub Iopub_flush;
+(*
+            let send_display_data mime base64 f = 
+                let str = read_stdout f in
                 let str = 
                     if not base64 then str
                     else Cryptokit.(transform_string (Base64.encode_multiline()) str)
@@ -182,7 +276,7 @@ module Shell = struct
                         dd_metadata = `Assoc [];
                     })
             in
-
+*)
             (* output messages *)
             if status then begin
                 (* execution ok *)
@@ -197,13 +291,10 @@ module Shell = struct
                         er_user_variables = Some(`Assoc[]);
                         er_user_expressions = Some(`Assoc[]);
                     });
-                (* show compiler output *)
-                (if not !suppress_compiler then send_stream "stdout" (Buffer.contents Exec.buffer));
-                (* stdout or mime type *)
-                (if !mime_type = "" then send_stream_stdout t_stdout !suppress_stdout
-                else send_display_data !mime_type !base64 t_stdout);
-                (* stderr *)
-                send_stream_stdout t_stderr !suppress_stderr
+                if not !suppress_compiler then
+                    send_iopub (Iopub_send_message 
+                        (Stream { st_name="stdout"; st_data=Buffer.contents Exec.buffer }))
+
             end else begin
                 (* execution error *)
                 send_h sockets.shell msg
@@ -217,21 +308,17 @@ module Shell = struct
                         er_user_variables = None;
                         er_user_expressions = None;
                     });
-                (* (always) show compiler output *)
-                send_stream "stderr" (Buffer.contents Exec.buffer);
-                (* stdout - suppress if mime type *)
-                send_stream_stdout t_stdout (!suppress_stdout || !mime_type <> "");
-                (* stderr *)
-                send_stream_stdout t_stderr !suppress_stderr
+                send_iopub (Iopub_send_message 
+                    (Stream { st_name="stderr"; st_data=Buffer.contents Exec.buffer }));
             end;
-            set_state sockets msg "idle";
-
+            send_iopub (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
-    let run sockets =
-        let stdio = try redirect_stdio () with _ -> (Log.log("failed to redirect stdio\n"); exit 0) in
-        (* we are supposed to send state starting I think *)
-        (*set_state sockets Message.zero "starting";*)
+    let run sockets send_iopub =
+
+        (* we are supposed to send state starting I think, but with what ids? *)
+        (*send_iopub zero "starting";*)
+
         while true do
             let msg = recv sockets.shell in
             match msg.content with
@@ -245,7 +332,7 @@ module Shell = struct
                         }
                     })
 
-            | Execute_request(x) -> execute sockets stdio msg x
+            | Execute_request(x) -> execute sockets send_iopub msg x 
 
             | Shutdown_request(x) -> 
                 (send_h sockets.shell msg (Shutdown_reply { restart = false });
@@ -260,7 +347,12 @@ end
 (*******************************************************************************)
 (* main *)
 
-let read_connection_info () = 
+let () = Printf.printf "[iocaml] Starting kernel\n%!" 
+let () = Toploop.set_paths() 
+let () = !Toploop.toplevel_startup_hook() 
+let () = Toploop.initialize_toplevel_env() 
+
+let connection_info = 
     let f_conn_info = open_in Sys.argv.(1) in
     let state = Yojson.init_lexer () in
     let lex = Lexing.from_channel f_conn_info in
@@ -268,17 +360,38 @@ let read_connection_info () =
     let () = close_in f_conn_info in
     conn
 
-let main  =  
-    let () = Printf.printf "[iocaml] Starting kernel\n%!" in
-    let () = Toploop.set_paths() in
-    let () = !Toploop.toplevel_startup_hook() in
-    let () = Toploop.initialize_toplevel_env() in
+let sockets = Sockets.open_sockets connection_info
+
+let stdio = Stdio.redirect() 
+
+let send_iopub = Shell.start_iopub stdio sockets.Sockets.iopub 
+let send_message msg = send_iopub (Shell.Iopub_send_message msg)
+let send_flush () = send_iopub Shell.Iopub_flush
+
+let suppress_stdout b = send_iopub (Shell.Iopub_suppress_stdout b)
+let suppress_stderr b = send_iopub (Shell.Iopub_suppress_stderr b)
+let suppress_compiler b = Shell.suppress_compiler := b
+let suppress_all b = 
+    suppress_stdout b;
+    suppress_stderr b;
+    suppress_compiler b
+
+let display ?(base64=false) mime_type data = 
+    let data = 
+        if not base64 then data
+        else Cryptokit.(transform_string (Base64.encode_multiline()) data)
+    in
+    send_message Shell.(mime_message_content mime_type base64 data)
+
+let mime = let _,_,_,_,m = stdio in m.Stdio.o_perv
+let send_mime ?(base64=false) mime_type = 
+    flush mime;
+    send_iopub Shell.(Iopub_send_mime(mime_type,base64))
+
+let main () =  
     try
-        let conn = read_connection_info () in
-        let sockets = Sockets.open_sockets conn in
-        let hb_thread = Thread.create Sockets.heartbeat conn in
-        ignore (hb_thread);
-        Shell.run sockets
+        let _ = Thread.create Sockets.heartbeat connection_info in
+        Shell.run sockets send_iopub
     with x -> begin
         Log.log (Printf.sprintf "Exception: %s\n" (Printexc.to_string x));
         exit 0

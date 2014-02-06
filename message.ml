@@ -78,7 +78,7 @@ type message =
         header : header_info;
         parent : header_info;
         meta : string; (* XXX dict => assoc list I think *)
-        content : message_content; (* XXX message data based on type *)
+        content : message_content; 
         raw : string array;
     }
 

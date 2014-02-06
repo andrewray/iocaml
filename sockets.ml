@@ -10,9 +10,7 @@
 
 let context = ZMQ.init ()
 let () = at_exit 
-    (fun () ->
-        Log.log "ZMQ.term\n"; 
-        ZMQ.term context)
+    (fun () -> ZMQ.term context)
 
 let version = [3;2] (* XXX get from ZMQ *)
 
