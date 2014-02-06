@@ -13,6 +13,16 @@ _build/iocaml.top: $(SRC)
 		-pkg threads,ZMQ,uuidm,yojson,atdgen,cryptokit,compiler-libs \
 		-cflag -thread -lflag -thread iocaml.top
 
+BINDIR=`opam config var bin`
+
+install: all
+	ocamlfind install iocaml META _build/iocaml.cmi _build/Ipython_json_t.cmi \
+		_build/Ipython_json_j.cmi _build/message.cmi _build/log.cmi _build/sockets.cmi
+	cp _build/iocaml.top $(BINDIR)/iocaml.top
+
+uninstall:
+	ocamlfind remove iocaml
+
 clean:
 	ocamlbuild -clean
 	- rm -f Ipython_json_t.mli Ipython_json_t.ml  

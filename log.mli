@@ -8,6 +8,9 @@
  *
  *)
 
+(* open log file *)
+val open_log_file : string -> unit
+
 (* write string to log file *)
 val log : string -> unit
 

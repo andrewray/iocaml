@@ -109,7 +109,7 @@ type object_info_reply = {
 type complete_request = {
     cr_text <json name="text"> : string;
     line : string;
-    block : string;
+    block : unit;
     cursor_pos : int;
 }
 
@@ -127,12 +127,12 @@ type history_request = {
     output : bool;
     raw : bool;
     hist_access_type : string;
-    hr_session <json name="session"> : int;
-    start : int;
-    stop : int;
+    ~hr_session <json name="session"> : int;
+    ~start : int;
+    ~stop : int;
     n : int;
-    pattern : string;
-    unique : bool;
+    ~pattern : string;
+    ~unique : bool;
 }
 
 type history_reply = {

@@ -243,7 +243,7 @@ module Shell = struct
             ignore (input_char r1))
 
     (* execute code *)
-    let execute = 
+    let execute_request = 
         let execution_count = ref 0 in
         (fun sockets send_iopub msg e ->
 
@@ -314,38 +314,77 @@ module Shell = struct
             send_iopub (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
-    let run sockets send_iopub =
+    let kernel_info_request socket msg = 
+        send socket
+            (make_header { msg with
+                content = Kernel_info_reply { 
+                    protocol_version = [ 3; 2 ];
+                    language_version = [ 4; 1; 0 ];
+                    language = "ocaml";
+                }
+            })
 
+    let shutdown_request socket msg x = 
+        (send_h socket msg (Shutdown_reply { restart = false });
+        raise (Failure "Exiting"))
+
+    let handle_invalid_message () = 
+        raise (Failure "Invalid message on shell socket")
+
+    let connect_request socket msg = ()
+    let object_info_request socket msg x = ()
+    let complete_request socket msg x = ()
+    let history_request socket msg x = ()
+
+    let run sockets send_iopub =
+        let () = Sys.catch_break true in
         (* we are supposed to send state starting I think, but with what ids? *)
         (*send_iopub zero "starting";*)
 
-        while true do
+        let handle_message () = 
             let msg = recv sockets.shell in
             match msg.content with
-            | Kernel_info_request ->
-                send sockets.shell
-                    (make_header { msg with
-                        content = Kernel_info_reply { 
-                            protocol_version = [ 3; 2 ];
-                            language_version = [ 4; 1; 0 ];
-                            language = "ocaml";
-                        }
-                    })
+            | Kernel_info_request -> kernel_info_request sockets.shell msg
+            | Execute_request(x) -> execute_request sockets send_iopub msg x 
+            | Connect_request -> connect_request sockets.shell msg 
+            | Object_info_request(x) -> object_info_request sockets.shell msg x
+            | Complete_request(x) -> complete_request sockets.shell msg x
+            | History_request(x) -> history_request sockets.shell msg x
+            | Shutdown_request(x) -> shutdown_request sockets.shell msg x
 
-            | Execute_request(x) -> execute sockets send_iopub msg x 
+            (* messages we should not be getting *)
+            | Connect_reply(_) | Kernel_info_reply(_)
+            | Shutdown_reply(_) | Execute_reply(_)
+            | Object_info_reply(_) | Complete_reply(_)
+            | History_reply(_) | Status(_) | Pyin(_) 
+            | Pyout(_) | Stream(_) | Display_data(_) -> handle_invalid_message ()
+        in
 
-            | Shutdown_request(x) -> 
-                (send_h sockets.shell msg (Shutdown_reply { restart = false });
-                raise (Failure "Exiting"))
-
-            | _ -> failwith ("shell: Unknown message " ^ msg.header.msg_type)
-
-        done 
+        let rec run () = 
+            try 
+                handle_message(); run () 
+            with Sys.Break -> 
+                Log.log "Sys.Break\n"; run () 
+        in
+        run ()
 
 end
 
 (*******************************************************************************)
 (* main *)
+
+(* command line *)
+
+let connection_file_name = ref ""
+let () = 
+    Arg.(parse
+        (align [
+            "-log", String(fun s -> Log.open_log_file s), "<filename> open log file";
+            "-connection-file", String(fun s -> connection_file_name := s),
+                "<filename> connection file name";
+        ])
+        (fun s -> failwith ("invalid anonymous argument: " ^ s)) 
+        "iocaml kernel")
 
 let () = Printf.printf "[iocaml] Starting kernel\n%!" 
 let () = Toploop.set_paths() 
@@ -353,7 +392,12 @@ let () = !Toploop.toplevel_startup_hook()
 let () = Toploop.initialize_toplevel_env() 
 
 let connection_info = 
-    let f_conn_info = open_in Sys.argv.(1) in
+    let f_conn_info = 
+        try open_in !connection_file_name 
+        with _ -> 
+            failwith ("Failed to open connection file: '" ^ 
+                     !connection_file_name ^ "'")  
+    in
     let state = Yojson.init_lexer () in
     let lex = Lexing.from_channel f_conn_info in
     let conn = Ipython_json_j.read_connection_info state lex in
@@ -394,6 +438,7 @@ let main () =
         Shell.run sockets send_iopub
     with x -> begin
         Log.log (Printf.sprintf "Exception: %s\n" (Printexc.to_string x));
+        Log.log "Dying.\n";
         exit 0
     end
 

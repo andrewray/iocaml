@@ -16,13 +16,21 @@ type message_content =
     | Kernel_info_request
     | Shutdown_request of shutdown
     | Execute_request of execute_request
+    | Object_info_request of object_info_request
+    | Complete_request of complete_request
+    | History_request of history_request
     (* messages sent to front end *)
     | Connect_reply of connect_reply
     | Kernel_info_reply of kernel_info_reply
     | Shutdown_reply of shutdown
     | Execute_reply of execute_reply
+    | Object_info_reply of object_info_reply
+    | Complete_reply of complete_reply
+    | History_reply of history_reply
+    (* other *)
     | Status of status
     | Pyin of pyin
+    | Pyout of pyout
     | Stream of stream
     | Display_data of display_data
 
