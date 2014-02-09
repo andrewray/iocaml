@@ -4,11 +4,47 @@
  *   (c) 2014 MicroJamJar Ltd
  *
  * Author(s): andy.ray@ujamjar.com
- * Description: Top level loop and socket communications.
+ * Description: Top level loop, socket communications amd user API
  *
  *)
 
+(*******************************************************************************)
+(* command line *)
+
+let connection_file_name = ref ""
+let suppress_stdout = ref false
+let suppress_stderr = ref false
+let suppress_compiler = ref false
+let packages = ref []
+
+let () = 
+    let suppress = 
+        [
+            "stdout",  (fun () -> suppress_stdout := true);
+            "stderr",  (fun () -> suppress_stderr := true);
+            "compiler",(fun () -> suppress_compiler := true);
+            "all",     (fun () -> suppress_stdout := true;
+                                  suppress_stderr := true;
+                                  suppress_compiler := true);
+        ]
+    in
+    Arg.(parse
+        (align [
+            "-log", String(Log.open_log_file), 
+                "<filename> open log file";
+            "-connection-file", Set_string(connection_file_name),
+                "<filename> connection file name";
+            "-suppress", Symbol(List.map fst suppress, (fun s -> (List.assoc s suppress) ())), 
+                " suppress channel at start up";
+            "-package", String(fun s -> packages := s :: !packages), 
+                "<package> load package at startup";
+        ])
+        (fun s -> failwith ("invalid anonymous argument: " ^ s)) 
+        "iocaml kernel")
+
+(*******************************************************************************)
 (* code execution in the top level *)
+
 module Exec = struct
 
     let buffer = Buffer.create 4096
@@ -26,7 +62,6 @@ module Exec = struct
             try begin
                 List.iter
                     (fun ph ->
-                        Log.log("exec phrase\n");
                         if not (Toploop.execute_phrase true formatter ph) then raise Exit)
                     (!Toploop.parse_use_file lb);
                 true
@@ -38,6 +73,9 @@ module Exec = struct
         success
 
 end
+
+(*******************************************************************************)
+(* stdio hacks *)
 
 module Stdio = struct
 
@@ -107,6 +145,9 @@ module Stdio = struct
 
 end
 
+(*******************************************************************************)
+(* shell messages and iopub thread *)
+
 module Shell = struct
 
     open Ipython_json_t 
@@ -148,8 +189,6 @@ module Shell = struct
         in
         
         let msg = ref None in
-        let suppress_stdout = ref false in
-        let suppress_stderr = ref false in
 
         let send_output std suppress = 
             let buffer = String.create 1024 in
@@ -220,8 +259,6 @@ module Shell = struct
                 ctrl.i_unix, ctrl_message;
             ] (-1.) false
 
-    let suppress_compiler = ref false
-
     let start_iopub stdio socket = 
         let r0,w0 = Unix.pipe () in
         let r1,w1 = Unix.pipe () in
@@ -262,21 +299,7 @@ module Shell = struct
             (* eval code *)
             let status = Exec.run_cell !execution_count (Lexing.from_string e.code) in
             Pervasives.(flush stdout; flush stderr); send_iopub Iopub_flush;
-(*
-            let send_display_data mime base64 f = 
-                let str = read_stdout f in
-                let str = 
-                    if not base64 then str
-                    else Cryptokit.(transform_string (Base64.encode_multiline()) str)
-                in
-                send_h sockets.iopub msg
-                    (Display_data {
-                        dd_source = "ocaml";
-                        dd_data = `Assoc [mime,`String str];
-                        dd_metadata = `Assoc [];
-                    })
-            in
-*)
+
             (* output messages *)
             if status then begin
                 (* execution ok *)
@@ -373,19 +396,6 @@ end
 (*******************************************************************************)
 (* main *)
 
-(* command line *)
-
-let connection_file_name = ref ""
-let () = 
-    Arg.(parse
-        (align [
-            "-log", String(fun s -> Log.open_log_file s), "<filename> open log file";
-            "-connection-file", String(fun s -> connection_file_name := s),
-                "<filename> connection file name";
-        ])
-        (fun s -> failwith ("invalid anonymous argument: " ^ s)) 
-        "iocaml kernel")
-
 let () = Printf.printf "[iocaml] Starting kernel\n%!" 
 let () = Toploop.set_paths() 
 let () = !Toploop.toplevel_startup_hook() 
@@ -414,7 +424,7 @@ let send_flush () = send_iopub Shell.Iopub_flush
 
 let suppress_stdout b = send_iopub (Shell.Iopub_suppress_stdout b)
 let suppress_stderr b = send_iopub (Shell.Iopub_suppress_stderr b)
-let suppress_compiler b = Shell.suppress_compiler := b
+let suppress_compiler b = suppress_compiler := b
 let suppress_all b = 
     suppress_stdout b;
     suppress_stderr b;
@@ -431,6 +441,21 @@ let mime = let _,_,_,_,m = stdio in m.Stdio.o_perv
 let send_mime ?(base64=false) mime_type = 
     flush mime;
     send_iopub Shell.(Iopub_send_mime(mime_type,base64))
+
+let () = 
+    (* load startup packages, if any *)
+    if !packages <> [] then begin
+        let command = 
+"
+#use \"topfind\";; 
+#require \"" ^ String.concat "," (List.rev !packages) ^ "\";;
+"
+        in
+        let status = Exec.run_cell (-1) (Lexing.from_string command) in
+        Log.log (command);
+        Log.log (Buffer.contents Exec.buffer);
+        if not status then failwith "Couldn't load startup packages"
+    end
 
 let main () =  
     try

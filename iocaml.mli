@@ -1,3 +1,13 @@
+(* 
+ * iocaml - an OCaml kernel for IPython
+ *
+ *   (c) 2014 MicroJamJar Ltd
+ *
+ * Author(s): andy.ray@ujamjar.com
+ * Description: Top level loop, socket communications and user API.
+ *
+ *)
+
 open Ipython_json_t
 
 module Shell : sig

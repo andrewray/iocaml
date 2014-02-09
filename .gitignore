@@ -8,6 +8,7 @@
 *.cmxs
 *.cmxa
 _build/
+tools/
 Ipython_json_*
 iocaml.log
 .*.swp
