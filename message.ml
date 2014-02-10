@@ -125,9 +125,13 @@ let log msg =
     Log.log (sprintf "  header: %s\n" (string_of_header_info msg.header));
     Log.log (sprintf "  parent: %s\n" (string_of_header_info msg.parent));
     Log.log (sprintf "  content: %s\n" (json_of_content msg.content))
-    
+
+let enc_utf8 = Netconversion.convert ~in_enc:`Enc_iso88591 ~out_enc:`Enc_utf8
+let dec_utf8 = Netconversion.convert ~in_enc:`Enc_utf8 ~out_enc:`Enc_iso88591
+
 let recv socket = 
     let msg = ZMQ.Socket.recv_all socket in
+    let msg = List.map dec_utf8 msg in
     let rec split ids = function
         | [] -> failwith "couldn't find <IDS|MSG> marker"
         | "<IDS|MSG>" :: t -> Array.of_list (List.rev ids), Array.of_list t
@@ -157,14 +161,14 @@ let send socket msg =
     let () = log msg in
     let content = json_of_content msg.content in
     ZMQ.Socket.send_all socket (List.concat [
-        Array.to_list msg.ids;
-        ["<IDS|MSG>"];
-        [msg.hmac];
-        [string_of_header_info msg.header];
-        [string_of_header_info msg.parent];
-        [msg.meta];
-        [content];
-        Array.to_list msg.raw;
+        Array.to_list (Array.map enc_utf8 msg.ids);
+        [enc_utf8 "<IDS|MSG>"];
+        [enc_utf8 msg.hmac];
+        [enc_utf8 (string_of_header_info msg.header)];
+        [enc_utf8 (string_of_header_info msg.parent)];
+        [enc_utf8 (msg.meta)];
+        [enc_utf8 content];
+        Array.to_list (Array.map enc_utf8 msg.raw);
     ])
 
 let make_header msg = 

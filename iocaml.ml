@@ -50,14 +50,37 @@ module Exec = struct
     let buffer = Buffer.create 4096
     let formatter = Format.formatter_of_buffer buffer
 
+    let get_error_loc = function 
+        | Syntaxerr.Error(x) -> Syntaxerr.location_of_error x
+        | Lexer.Error(_, loc) 
+        | Typecore.Error(loc, _, _) 
+        | Typetexp.Error(loc, _, _) 
+        | Typedecl.Error(loc, _) 
+        | Typeclass.Error(loc, _, _) 
+        | Typemod.Error(loc, _, _) 
+        | Translcore.Error(loc, _) 
+        | Translclass.Error(loc, _) 
+        | Translmod.Error(loc, _) -> loc
+        | _ -> raise Not_found
+
     exception Exit
     let report_error x = 
-        try (Errors.report_error formatter x; false)
-        with x -> (Format.fprintf formatter "exn: %s@." (Printexc.to_string x); false)
+        try begin
+            Errors.report_error formatter x; 
+            (try begin
+                if Location.highlight_locations formatter (get_error_loc x) Location.none then 
+                    Format.pp_print_flush formatter ()
+            end with _ -> ()); 
+            false
+        end with x -> (* shouldn't happen any more *) 
+            (Format.fprintf formatter "exn: %s@." (Printexc.to_string x); false)
 
-    let run_cell execution_count lb =
+    let run_cell_lb execution_count lb =
+        let cell_name = "["^string_of_int execution_count^"]" in
         Buffer.clear buffer;
-        Location.init lb ("["^string_of_int execution_count^"]");
+        Location.init lb cell_name;
+        Location.input_name := cell_name;
+        Location.input_lexbuf := Some(lb);
         let success =
             try begin
                 List.iter
@@ -71,6 +94,11 @@ module Exec = struct
             | x -> report_error x
         in
         success
+
+    let run_cell execution_count code = run_cell_lb execution_count 
+        (* little hack - make sure code ends with a '\n' otherwise the
+         * error reporting isn't quite right *)
+        Lexing.(from_string (code ^ "\n"))
 
 end
 
@@ -297,7 +325,7 @@ module Shell = struct
                     }));
 
             (* eval code *)
-            let status = Exec.run_cell !execution_count (Lexing.from_string e.code) in
+            let status = Exec.run_cell !execution_count e.code in
             Pervasives.(flush stdout; flush stderr); send_iopub Iopub_flush;
 
             (* output messages *)
@@ -451,11 +479,13 @@ let () =
 #require \"" ^ String.concat "," (List.rev !packages) ^ "\";;
 "
         in
-        let status = Exec.run_cell (-1) (Lexing.from_string command) in
+        let status = Exec.run_cell (-1) command in
         Log.log (command);
         Log.log (Buffer.contents Exec.buffer);
         if not status then failwith "Couldn't load startup packages"
     end
+
+let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
 
 let main () =  
     try

@@ -10,7 +10,7 @@ Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipyth
 
 _build/iocaml.top: $(SRC)
 	ocamlbuild -use-ocamlfind -no-links \
-		-pkg threads,ZMQ,uuidm,yojson,atdgen,cryptokit,compiler-libs \
+		-pkg threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,compiler-libs \
 		-cflag -thread -lflag -thread iocaml.top
 
 BINDIR=`opam config var bin`
