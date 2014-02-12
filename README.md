@@ -48,12 +48,14 @@ from the directory the package in unpacked to.
 
 ## Installing IOCaml
 
-### Via opam 
+### Via opam (>=1.1)
 
 ```
-opam remote add iocaml git://github.com/andrewray/opam.git
-opam install iocaml
+$ opam remote add iocaml git://github.com/andrewray/opam.git
+$ opam install iocaml
 ```
+
+Some notebooks and profile files are copied into the opam share directory.
 
 Note that this will upgrade the opam version of ocaml-zmq to use the branch from [here](https://github.com/issuu/ocaml-zmq).
 
@@ -97,10 +99,16 @@ Run IPython to setup a new iocaml profile
 $ ipython profile create iocaml
 ```
 
-Copy the contents of 'profile/' into the the ipython profile directory '~/.config/ipython/profile_iocaml' (or '~/.ipython/profile_iocaml' if you've run 2.0-dev).
+Copy the contents of 'profile/' into the the ipython profile directory '~/.config/ipython/profile_iocaml' (or sometimes '~/.ipython/profile_iocaml').
 
 ```
 $ cp -r profile/* ~/.config/ipython/profile_iocaml/
+```
+
+If installed with opam then the profile files are in share.
+
+```
+cp -r `opam config var share`/iocaml/profile/* ~/.config/ipython/profile_iocaml
 ```
 
 Now you can run iocaml with
