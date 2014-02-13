@@ -3,6 +3,8 @@
 c = get_config()
 c.KernelManager.kernel_cmd = [ 'iocaml.top', 
                                     #'-log', 'iocaml.log', 
+                                    '-completion',
+                                    '-object-info',
                                     '-package', 'iocaml',
                                     '-connection-file', '{connection_file}' 
                              ]

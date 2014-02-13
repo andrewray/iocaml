@@ -1,23 +1,31 @@
 all: _build/iocaml.top
 
-SRC = iocaml_main.ml iocaml.ml message.ml sockets.ml log.ml \
-	  iocaml.mli message.mli sockets.mli log.mli \
-	  Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml 
+FILES = iocaml message sockets log completion Ipython_json_t Ipython_json_j 
+ML = $(foreach file,$(FILES),$(file).ml)
+MLI = $(foreach file,$(FILES),$(file).mli)
+CMO = $(foreach file,$(FILES),_build/$(file).cmo)
+CMI = $(foreach file,$(FILES),_build/$(file).cmi)
+CMT = $(foreach file,$(FILES),_build/$(file).cmt)
+CMTI = $(foreach file,$(FILES),_build/$(file).cmti)
+
+SRC = iocaml_main.ml $(ML) $(MLI)
+
+PKG = threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,compiler-libs,ocp-index.lib,optcomp 
 
 Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipython_json.atd
 	atdgen -t Ipython_json.atd
 	atdgen -j Ipython_json.atd
 
 _build/iocaml.top: $(SRC)
+	echo $(ML)
 	ocamlbuild -use-ocamlfind -no-links \
-		-pkg threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,compiler-libs \
+		-pkg $(PKG) \
 		-cflag -thread -lflag -thread iocaml.top
 
 BINDIR=`opam config var bin`
 
 install: all
-	ocamlfind install iocaml META _build/iocaml.cmi _build/Ipython_json_t.cmi \
-		_build/Ipython_json_j.cmi _build/message.cmi _build/log.cmi _build/sockets.cmi
+	ocamlfind install iocaml META $(CMI) $(CMO) $(CMT) $(CMTI)
 	cp _build/iocaml.top $(BINDIR)/iocaml.top
 
 uninstall:

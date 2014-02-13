@@ -1,0 +1,2 @@
+<iocaml.ml>: syntax(camlp4o), package(optcomp)
+true: bin_annot

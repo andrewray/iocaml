@@ -16,6 +16,8 @@ let suppress_stdout = ref false
 let suppress_stderr = ref false
 let suppress_compiler = ref false
 let packages = ref []
+let completion = ref false
+let object_info = ref false
 
 let () = 
     let suppress = 
@@ -38,6 +40,8 @@ let () =
                 " suppress channel at start up";
             "-package", String(fun s -> packages := s :: !packages), 
                 "<package> load package at startup";
+            "-completion", Set(completion), " enable tab completion";
+            "-object-info", Set(object_info), " enable introspection";
         ])
         (fun s -> failwith ("invalid anonymous argument: " ^ s)) 
         "iocaml kernel")
@@ -50,6 +54,7 @@ module Exec = struct
     let buffer = Buffer.create 4096
     let formatter = Format.formatter_of_buffer buffer
 
+#if ocaml_version > (4, 0)
     let get_error_loc = function 
         | Syntaxerr.Error(x) -> Syntaxerr.location_of_error x
         | Lexer.Error(_, loc) 
@@ -62,6 +67,19 @@ module Exec = struct
         | Translclass.Error(loc, _) 
         | Translmod.Error(loc, _) -> loc
         | _ -> raise Not_found
+#else
+    let get_error_loc = function 
+        | Lexer.Error(_, loc) 
+        | Typecore.Error(loc, _) 
+        | Typetexp.Error(loc, _) 
+        | Typedecl.Error(loc, _) 
+        | Typeclass.Error(loc, _) 
+        | Typemod.Error(loc, _) 
+        | Translcore.Error(loc, _) 
+        | Translclass.Error(loc, _) 
+        | Translmod.Error(loc, _) -> loc
+        | _ -> raise Not_found
+#endif
 
     exception Exit
     let report_error x = 
@@ -326,7 +344,7 @@ module Shell = struct
 
             (* eval code *)
             let status = Exec.run_cell !execution_count e.code in
-            Pervasives.(flush stdout; flush stderr); send_iopub Iopub_flush;
+            Pervasives.flush stdout; Pervasives.flush stderr; send_iopub Iopub_flush;
 
             (* output messages *)
             if status then begin
@@ -382,12 +400,24 @@ module Shell = struct
     let handle_invalid_message () = 
         raise (Failure "Invalid message on shell socket")
 
+    let complete_request index socket msg x = 
+        if !completion then 
+            let reply = Completion.complete index x in
+            send_h socket msg (Complete_reply reply)
+        else
+            ()
+
+    let object_info_request index socket msg x = 
+        if !object_info then
+            let reply = Completion.info index x in
+            send_h socket msg (Object_info_reply reply)
+        else
+            ()
+
     let connect_request socket msg = ()
-    let object_info_request socket msg x = ()
-    let complete_request socket msg x = ()
     let history_request socket msg x = ()
 
-    let run sockets send_iopub =
+    let run sockets send_iopub index =
         let () = Sys.catch_break true in
         (* we are supposed to send state starting I think, but with what ids? *)
         (*send_iopub zero "starting";*)
@@ -398,8 +428,8 @@ module Shell = struct
             | Kernel_info_request -> kernel_info_request sockets.shell msg
             | Execute_request(x) -> execute_request sockets send_iopub msg x 
             | Connect_request -> connect_request sockets.shell msg 
-            | Object_info_request(x) -> object_info_request sockets.shell msg x
-            | Complete_request(x) -> complete_request sockets.shell msg x
+            | Object_info_request(x) -> object_info_request index sockets.shell msg x
+            | Complete_request(x) -> complete_request index sockets.shell msg x
             | History_request(x) -> history_request sockets.shell msg x
             | Shutdown_request(x) -> shutdown_request sockets.shell msg x
 
@@ -450,6 +480,8 @@ let send_iopub = Shell.start_iopub stdio sockets.Sockets.iopub
 let send_message msg = send_iopub (Shell.Iopub_send_message msg)
 let send_flush () = send_iopub Shell.Iopub_flush
 
+let index = Completion.init ()
+
 let suppress_stdout b = send_iopub (Shell.Iopub_suppress_stdout b)
 let suppress_stderr b = send_iopub (Shell.Iopub_suppress_stderr b)
 let suppress_compiler b = suppress_compiler := b
@@ -490,7 +522,7 @@ let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
 let main () =  
     try
         let _ = Thread.create Sockets.heartbeat connection_info in
-        Shell.run sockets send_iopub
+        Shell.run sockets send_iopub index
     with x -> begin
         Log.log (Printf.sprintf "Exception: %s\n" (Printexc.to_string x));
         Log.log "Dying.\n";
