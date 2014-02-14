@@ -1,14 +1,45 @@
 IOCaml
 ======
 
-*An OCaml kernel for IPython.*
+IOCaml is an OCaml kernel for the [IPython
+notebook](http://ipython.org/notebook.html). This provides a REPL
+within a web browser with a nice user interface including markdown
+based comments/documentation, mathjax formula and the possibility of
+generating all manner of HTML based output media from your code.  Here
+are a few features I think are particularly interesting;
 
-Latest release tag: v0.3
-OCaml compiler >= 4.00.1
+* Uses ocp-index.lib to provide code completion and types
+  (includes documentation if .cmt files exist).  Only works with
+  installed libraries at the moment.  Very new, a wee bit buggy, but
+  I love it.
 
-[Example](http://nbviewer.ipython.org/github/andrewray/iocaml/blob/master/notebooks/iocaml-test-notebook.ipynb)
+* I copy/pasted the OCaml core language documentation page into
+  a notebook.  Now you can learn interactively!
+
+* Play with TyXML in the notebook and render typed HTML interactively.
+
+Have a look at [the
+example](http://nbviewer.ipython.org/github/andrewray/iocaml/blob/master/notebooks/iocaml-test-notebook.ipynb),
+using the IPython web viewer to browse an IOCaml notebook.
 
 # Installation
+
+Installation is reasonably painless through opam, though you currently
+need to add my remote repository [^1] and require a >=4.00.1 compiler.
+Installation of IPython is a touch more involved as you will have to
+update (using [pip](http://www.pip-installer.org/en/latest/)) some
+python components [^2].  Instructions for Ubuntu 13.10 can be found
+below, and I have also tested Fedora 20 which was, apart from some
+slightly different package names, very similar.
+
+[^1]: I'd love to push this to opam proper but require ocaml-zmq >=3.2.
+There was a [recent
+discussion](http://alan.petitepomme.net/cwn/2014.01.14.html#5) on the
+caml-list about this (indeed reading about ZeroMQ led me to IPython)
+so hopefully this will happen before too long.
+
+[^2]: I haven't tested this release with 0.13.2 which the distros
+provide.  Maybe it works anyway.
 
 ## Installing IPython
 
@@ -100,7 +131,7 @@ Run IPython to setup a new iocaml profile
 $ ipython profile create iocaml
 ```
 
-Copy the contents of 'profile/' into the the ipython profile directory '~/.config/ipython/profile_iocaml' (or sometimes '~/.ipython/profile_iocaml').
+Copy the contents of `profile/` into the the ipython profile directory `~/.config/ipython/profile_iocaml` (or sometimes `~/.ipython/profile_iocaml`).
 
 ```
 $ cp -r profile/* ~/.config/ipython/profile_iocaml/
