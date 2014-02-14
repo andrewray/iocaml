@@ -3,7 +3,8 @@ IOCaml
 
 *An OCaml kernel for IPython.*
 
-Latest release tag: v0.2
+Latest release tag: v0.3
+OCaml compiler >= 4.00.1
 
 [Example](http://nbviewer.ipython.org/github/andrewray/iocaml/blob/master/notebooks/iocaml-test-notebook.ipynb)
 
@@ -64,7 +65,7 @@ Note that this will upgrade the opam version of ocaml-zmq to use the branch from
 Install required packages.
 
 ```
-$ opam install atdgen cryptokit uuidm ounit uint oasis ocamlnet
+$ opam install atdgen cryptokit uuidm ounit uint oasis ocamlnet ocp-index optcomp
 ```
 
 Clone the repositories we need to compile
@@ -129,8 +130,11 @@ iocaml kernel
   -suppress {stdout|stderr|compiler|all}
                               suppress channel at start up
   -package <package>          load package at startup
+  -completion                 enable tab completion
+  -object-info                enable introspection
   -help                       Display this list of options
   --help                      Display this list of options
+
 ```
 
 The defualt configuration loads the iocaml package at startup.
