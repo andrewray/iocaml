@@ -455,6 +455,7 @@ end
 (* main *)
 
 let () = Printf.printf "[iocaml] Starting kernel\n%!" 
+let () = Sys.interactive := false
 let () = Toploop.set_paths() 
 let () = !Toploop.toplevel_startup_hook() 
 let () = Toploop.initialize_toplevel_env() 
@@ -507,7 +508,14 @@ let () =
     if !packages <> [] then begin
         let command = 
 "
-#use \"topfind\";; 
+let () =
+  try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")
+  with Not_found -> ()
+;;
+
+#use \"topfind\" ;;
+#thread ;;
+#camlp4o ;;
 #require \"" ^ String.concat "," (List.rev !packages) ^ "\";;
 "
         in
