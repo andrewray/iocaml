@@ -8,8 +8,7 @@ including markdown based comments/documentation, mathjax formula and
 the possibility of generating all manner of HTML based output media 
 from your code.  
 
-[Example](notebooks/notebook-example-polys.png)
-[![Example picture](https://github.com/andrewray/iocaml/raw/master/notebook/notebook-example-polys.png)]
+[![Example picture](https://github.com/andrewray/iocaml/raw/master/notebooks/notebook-example-polys.png)]
 
 
 Here are a few features I think are particularly interesting;
