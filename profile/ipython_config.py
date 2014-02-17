@@ -5,6 +5,8 @@ c.KernelManager.kernel_cmd = [ 'iocaml.top',
                                     #'-log', 'iocaml.log', 
                                     '-completion',
                                     '-object-info',
+                                    '-thread',
+                                    '-syntax', 'camlp4o',
                                     '-package', 'iocaml',
                                     '-connection-file', '{connection_file}' 
                              ]

@@ -18,6 +18,9 @@ let suppress_compiler = ref false
 let packages = ref []
 let completion = ref false
 let object_info = ref false
+let thread = ref false
+type syntax = Syntax_none | Syntax_camlp4o | Syntax_camlp4r
+let syntax = ref Syntax_none
 
 let () = 
     let suppress = 
@@ -30,16 +33,24 @@ let () =
                                   suppress_compiler := true);
         ]
     in
+    let syntax = 
+        [
+            "none", (fun () -> syntax := Syntax_none);
+            "camlp4o", (fun () -> syntax := Syntax_camlp4o);
+            "camlp4r", (fun () -> syntax := Syntax_camlp4r);
+        ]
+    in
+    let symbol s = Arg.Symbol(List.map fst s, (fun s' -> (List.assoc s' s) ())) in
     Arg.(parse
         (align [
-            "-log", String(Log.open_log_file), 
-                "<filename> open log file";
+            "-log", String(Log.open_log_file), "<filename> open log file";
             "-connection-file", Set_string(connection_file_name),
                 "<filename> connection file name";
-            "-suppress", Symbol(List.map fst suppress, (fun s -> (List.assoc s suppress) ())), 
-                " suppress channel at start up";
+            "-suppress", symbol suppress, " suppress channel at start up";
             "-package", String(fun s -> packages := s :: !packages), 
-                "<package> load package at startup";
+                "<package> load package(s) at startup";
+            "-thread", Set(thread), " enable system threads";
+            "-syntax", symbol syntax, " enable camlp4 pre-processor";
             "-completion", Set(completion), " enable tab completion";
             "-object-info", Set(object_info), " enable introspection";
         ])
@@ -504,9 +515,8 @@ let send_mime ?(base64=false) mime_type =
     send_iopub Shell.(Iopub_send_mime(mime_type,base64))
 
 let () = 
-    (* load startup packages, if any *)
-    if !packages <> [] then begin
-        let command = 
+    (* set startup options *)
+    let command = 
 "
 let () =
   try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")
@@ -514,16 +524,22 @@ let () =
 ;;
 
 #use \"topfind\" ;;
-#thread ;;
-#camlp4o ;;
-#require \"" ^ String.concat "," (List.rev !packages) ^ "\";;
 "
-        in
-        let status = Exec.run_cell (-1) command in
-        Log.log (command);
-        Log.log (Buffer.contents Exec.buffer);
-        if not status then failwith "Couldn't load startup packages"
-    end
+    in
+    let command = List.fold_left 
+        (fun com (p,c) -> if p then com ^ c else com) command
+        [
+            !thread, "#thread;;\n";
+            !syntax = Syntax_camlp4o, "#camlp4o;;\n"; 
+            !syntax = Syntax_camlp4r, "#camlp4r;;\n";
+            !packages <> [],
+                "#require \"" ^ String.concat "," (List.rev !packages) ^ "\";;\n"
+        ]
+    in
+    let status = Exec.run_cell (-1) command in
+    Log.log (command);
+    Log.log (Buffer.contents Exec.buffer);
+    if not status then failwith "Couldn't load startup packages"
 
 let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
 

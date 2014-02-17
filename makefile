@@ -1,9 +1,10 @@
 all: _build/iocaml.top
 
-FILES = iocaml message sockets log completion Ipython_json_t Ipython_json_j 
+FILES = log Ipython_json_t Ipython_json_j message sockets completion iocaml
 ML = $(foreach file,$(FILES),$(file).ml)
 MLI = $(foreach file,$(FILES),$(file).mli)
 CMO = $(foreach file,$(FILES),_build/$(file).cmo)
+CMO_TGT = $(foreach file,$(FILES),$(file).cmo)
 CMI = $(foreach file,$(FILES),_build/$(file).cmi)
 CMT = $(foreach file,$(FILES),_build/$(file).cmt)
 CMTI = $(foreach file,$(FILES),_build/$(file).cmti)
@@ -16,11 +17,19 @@ Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipyth
 	atdgen -t Ipython_json.atd
 	atdgen -j Ipython_json.atd
 
+# manually link ocp-index.  proper ocamlfind package includes
+# compiler-libs which breaks toplevels built with ocamlmktop.
+OCP_INDEX_INC=`ocamlfind query ocp-index.lib -predicates byte -format "%d"`
+OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
+
 _build/iocaml.top: $(SRC)
-	echo $(ML)
-	ocamlbuild -use-ocamlfind -no-links \
-		-pkg $(PKG) \
-		-cflag -thread -lflag -thread iocaml.top
+	ocamlbuild -use-ocamlfind $(CMO_TGT) iocaml_main.cmo
+	ocamlfind ocamlmktop -thread -linkpkg \
+		-package threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,ocp-indent.lib,optcomp,compiler-libs \
+		-I $(OCP_INDEX_INC) \
+		$(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) \
+		$(CMO) _build/iocaml_main.cmo \
+		-o _build/iocaml.top
 
 BINDIR=`opam config var bin`
 
@@ -36,5 +45,8 @@ clean:
 	- rm -f Ipython_json_t.mli Ipython_json_t.ml  
 	- rm -f Ipython_json_j.mli Ipython_json_j.ml  
 	- rm -f *~
+
+######################################################################
+# we have build problems.  lets see if we can sort them out
 
 
