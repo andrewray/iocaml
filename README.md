@@ -55,7 +55,7 @@ $ sudo pip install -U ipython pyzmq
 
 ### MacOS X 10.9
 
-(Installation script)[https://gist.github.com/avsm/9041133]
+[Installation script](https://gist.github.com/avsm/9041133)
 
 ### Arch linux
 
