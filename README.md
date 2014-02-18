@@ -29,15 +29,16 @@ using the IPython web viewer to browse an IOCaml notebook.
 
 # Installation
 
-Installation is reasonably painless through opam, though you currently
-need to add my remote repository and require a >=4.00.1 compiler.
-Installation of IPython is a touch more involved as you will have to
+Installation is reasonably painless through opam and requires >=4.00.1 compiler.
+Installation of IPython is a touch more involved as you may have to
 update (using [pip](http://www.pip-installer.org/en/latest/)) some
 python components.  Instructions for Ubuntu 13.10 can be found
 below, and I have also tested Fedora 20 which was, apart from some
 slightly different package names, very similar.
 
 ## Installing IPython
+
+### Ubuntu 13.10 (64 bit)
 
 IOCaml is currently being developed against IPython 1.1. To set this up on Ubuntu 13.10 64 bit do;
 
@@ -51,6 +52,20 @@ Then update the following python packages;
 ```
 $ sudo pip install -U ipython pyzmq
 ```
+
+### MacOS X 10.9
+
+(Installation script)[https://gist.github.com/avsm/9041133]
+
+### Arch linux
+
+* Ipython 1.1 is already in arch's repository, no need to use pip
+
+* ZMQ is version 4.0 in arch, but the ocaml binding is for 3.2, and it's not compiling anymore, so you need to install it manually (it works fine with abs).
+
+* ipython-notebook is included in the ipython2, you just need to install python2-tornado and python2-jinja.
+
+* It doesn't work with python 3, which is the default under arch, so you need to use ipython2
 
 ### Development IPython versions
 
@@ -67,13 +82,14 @@ from the directory the package in unpacked to.
 ### Via opam (>=1.1)
 
 ```
-$ opam remote add iocaml git://github.com/andrewray/opam.git
 $ opam install iocaml
 ```
 
 Some notebooks and profile files are copied into the opam share directory.
 
-Note that this will upgrade the opam version of ocaml-zmq to use the branch from [here](https://github.com/issuu/ocaml-zmq).
+***Note*** If you previously added my opam remote repository from
+git://github.com/andrewray/opam.git first '''opam remove'''
+iocaml and ocaml-zmq packages then '''opam remote remove''' the repo.
 
 ## Setting up IOCaml
 
