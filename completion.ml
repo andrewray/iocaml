@@ -1,3 +1,13 @@
+(* 
+ * iocaml - an OCaml kernel for IPython
+ *
+ *   (c) 2014 MicroJamJar Ltd
+ *
+ * Author(s): andy.ray@ujamjar.com
+ * Description: Use ocp-index to fill out the competion and object-info messages
+ *
+ *)
+
 (* (simple) tab completion api *)
 open Ipython_json_t
 

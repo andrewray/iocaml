@@ -32,6 +32,7 @@ type message_content =
     | Pyin of pyin
     | Pyout of pyout
     | Stream of stream
+    | Clear of clear_output
     | Display_data of display_data
 
 val content_of_json : header_info -> string -> message_content

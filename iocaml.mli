@@ -18,6 +18,8 @@ module Shell : sig
         | Iopub_set_current of Message.message
         (** send iopub message *)
         | Iopub_send_message of Message.message_content
+        (** send raw iopub message *)
+        | Iopub_send_raw_message of Message.message
         (** enable/disable stdout messages *)
         | Iopub_suppress_stdout of bool
         (** enable/disable stderr messages *)
@@ -25,9 +27,15 @@ module Shell : sig
         (** flush stdout/stderr *)
         | Iopub_flush
         (** send a mime message *)
-        | Iopub_send_mime of string * bool
+        | Iopub_send_mime of Message.message option * string * bool
+        (** get current message context *)
+        | Iopub_get_current
         (** halt iopub thread *)
         | Iopub_stop
+
+    type iopub_resp = 
+        | Iopub_ok
+        | Iopub_context of Message.message option
 end
 
 (** connection information *)
@@ -48,27 +56,42 @@ val suppress_all : bool -> unit
 (** ocp-index *)
 val index : LibIndex.t
 
+type cell_context
+
 (** send message to iopub thread *)
-val send_iopub : Shell.iopub_message -> unit
+val send_iopub : Shell.iopub_message -> Shell.iopub_resp
 
 (** send message over iopub socket *)
-val send_message : Message.message_content -> unit
+val send_message : ?context:cell_context -> Message.message_content -> unit
 
 (** flush stdout/stderr *)
 val send_flush : unit -> unit
 
 (* mime display *)
 
+(** base 64 encode *)
+val base64enc : string -> string
+
+(** create a data uri string (default is to base64 encode the data) *)
+val data_uri : ?base64:bool -> string -> string -> string
+
 (** display ~base64 mime_type data sends data to the frontend as the given
     mime type with optional base64 encoding. *)
-val display : ?base64:bool -> string -> string -> unit
+val display : ?context:cell_context -> ?base64:bool -> string -> string -> unit
 
-(** channel to which the data for a mime message can be written *)
+(** channel to which the data for a mime messages can be written *)
 val mime : out_channel
 
 (** sends the message (once it's been written to the mime channel) with
     the given mime type and option base64 encoding *)
-val send_mime : ?base64:bool -> string -> unit
+val send_mime : ?context:cell_context -> ?base64:bool -> string -> unit
+
+(** sends message to clear cell output area (requires IPython 2.0+) *)
+val send_clear : ?context:cell_context -> 
+    ?wait:bool -> ?stdout:bool -> ?stderr:bool -> ?other:bool -> unit -> unit
+
+(* get current cells context *)
+val cell_context : unit -> cell_context
 
 (** DONT USE!!! *)
 val main : unit -> unit

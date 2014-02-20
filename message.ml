@@ -33,6 +33,7 @@ type message_content =
     | Pyin of pyin
     | Pyout of pyout
     | Stream of stream
+    | Clear of clear_output
     | Display_data of display_data
 
 let content_of_json hdr c = 
@@ -58,6 +59,7 @@ let content_of_json hdr c =
     | "pyout" -> Pyout(pyout_of_string c)
     | "stream" -> Stream(stream_of_string c)
     | "display_data" -> Display_data(display_data_of_string c)
+    | "clear_output" -> Clear(clear_output_of_string c)
     | _ -> failwith ("content_of_json: " ^ hdr.msg_type)
 
 let json_of_content = function
@@ -81,6 +83,7 @@ let json_of_content = function
     | Pyin(x) -> string_of_pyin x
     | Pyout(x) -> string_of_pyout x
     | Stream(x) -> string_of_stream x
+    | Clear(x) -> string_of_clear_output x
     | Display_data(x) -> string_of_display_data x
 
 let msg_type_of_content = function
@@ -104,6 +107,7 @@ let msg_type_of_content = function
     | Pyin(_) -> "pyin"
     | Pyout(_) -> "pyout"
     | Stream(_) -> "stream"
+    | Clear(_) -> "clear_output"
     | Display_data(_) -> "display_data"
 
 type message = 
