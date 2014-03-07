@@ -22,6 +22,14 @@ let thread = ref false
 type syntax = Syntax_none | Syntax_camlp4o | Syntax_camlp4r
 let syntax = ref Syntax_none
 
+let ci_stdin = ref 50000
+let ci_shell = ref 50001
+let ci_iopub = ref 50002
+let ci_heartbeat = ref 50003
+let ci_control = ref 50004
+let ci_transport = ref "tcp"
+let ci_ip_addr = ref ""
+
 let () = 
     let suppress = 
         [
@@ -53,6 +61,14 @@ let () =
             "-syntax", symbol syntax, " enable camlp4 pre-processor";
             "-completion", Set(completion), " enable tab completion";
             "-object-info", Set(object_info), " enable introspection";
+            (* pass connection info through command line *)
+            "-ci-stdin", Set_int(ci_stdin), " (connection info) stdin zmq port";
+            "-ci-iopub", Set_int(ci_iopub), " (connection info) iopub zmq port";
+            "-ci-shell", Set_int(ci_shell), " (connection info) shell zmq port";
+            "-ci-control", Set_int(ci_control), " (connection info) control zmq port";
+            "-ci-heartbeat", Set_int(ci_heartbeat), " (connection info) heartbeat zmq port";
+            "-ci-transport", Set_string(ci_transport), " (connection info) transport";
+            "-ci-ip", Set_string(ci_ip_addr), " (connection info) ip address"
         ])
         (fun s -> failwith ("invalid anonymous argument: " ^ s)) 
         "iocaml kernel")
@@ -492,17 +508,32 @@ let () = !Toploop.toplevel_startup_hook()
 let () = Toploop.initialize_toplevel_env() 
 
 let connection_info = 
-    let f_conn_info = 
-        try open_in !connection_file_name 
-        with _ -> 
-            failwith ("Failed to open connection file: '" ^ 
-                     !connection_file_name ^ "'")  
-    in
-    let state = Yojson.init_lexer () in
-    let lex = Lexing.from_channel f_conn_info in
-    let conn = Ipython_json_j.read_connection_info state lex in
-    let () = close_in f_conn_info in
-    conn
+    if !ci_ip_addr <> "" then
+        (* get configuration parameters from command line *)
+        Ipython_json_t.({
+            stdin_port = !ci_stdin;
+            ip = !ci_ip_addr;
+            control_port = !ci_control;
+            hb_port = !ci_heartbeat;
+            signature_scheme = "hmac-sha256";
+            key = "";
+            shell_port = !ci_shell;
+            transport = !ci_transport;
+            iopub_port = !ci_iopub;
+        })
+    else
+        (* read from configuration files *)
+        let f_conn_info = 
+            try open_in !connection_file_name 
+            with _ -> 
+                failwith ("Failed to open connection file: '" ^ 
+                         !connection_file_name ^ "'")  
+        in
+        let state = Yojson.init_lexer () in
+        let lex = Lexing.from_channel f_conn_info in
+        let conn = Ipython_json_j.read_connection_info state lex in
+        let () = close_in f_conn_info in
+        conn
 
 let sockets = Sockets.open_sockets connection_info
 

@@ -130,11 +130,19 @@ let log msg =
     Log.log (sprintf "  parent: %s\n" (string_of_header_info msg.parent));
     Log.log (sprintf "  content: %s\n" (json_of_content msg.content))
 
+(*
 let enc_utf8 = Netconversion.convert ~in_enc:`Enc_iso88591 ~out_enc:`Enc_utf8
 let dec_utf8 = Netconversion.convert ~in_enc:`Enc_utf8 ~out_enc:`Enc_iso88591
+*)
+let enc_utf8 x = x
+let dec_utf8 x = x
 
 let recv socket = 
     let msg = ZMQ.Socket.recv_all socket in
+    (*let () = 
+        Log.log (Printf.sprintf "recv: %i frame(s)\n" (List.length msg));
+        List.iter (fun s -> Log.log (s ^ "\n")) msg
+    in*)
     let msg = List.map dec_utf8 msg in
     let rec split ids = function
         | [] -> failwith "couldn't find <IDS|MSG> marker"
