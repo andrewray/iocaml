@@ -81,7 +81,6 @@ module Exec = struct
     let buffer = Buffer.create 4096
     let formatter = Format.formatter_of_buffer buffer
 
-#if ocaml_version > (4, 0)
     let get_error_loc = function 
         | Syntaxerr.Error(x) -> Syntaxerr.location_of_error x
         | Lexer.Error(_, loc) 
@@ -94,19 +93,6 @@ module Exec = struct
         | Translclass.Error(loc, _) 
         | Translmod.Error(loc, _) -> loc
         | _ -> raise Not_found
-#else
-    let get_error_loc = function 
-        | Lexer.Error(_, loc) 
-        | Typecore.Error(loc, _) 
-        | Typetexp.Error(loc, _) 
-        | Typedecl.Error(loc, _) 
-        | Typeclass.Error(loc, _) 
-        | Typemod.Error(loc, _) 
-        | Translcore.Error(loc, _) 
-        | Translclass.Error(loc, _) 
-        | Translmod.Error(loc, _) -> loc
-        | _ -> raise Not_found
-#endif
 
     exception Exit
     let report_error x = 
@@ -246,7 +232,7 @@ module Shell = struct
     let mime_message_content mime_type base64 data = 
         let data = 
             if not base64 then data
-            else Cryptokit.(transform_string (Base64.encode_multiline()) data)
+            else Base64.encode data
         in
         (Message.Display_data (Ipython_json_j.({
             dd_source = "ocaml";
@@ -566,7 +552,7 @@ let suppress_all b =
     suppress_stderr b;
     suppress_compiler b
 
-let base64enc data = Cryptokit.(transform_string (Base64.encode_multiline()) data)
+let base64enc data = Base64.encode data
 
 let data_uri ?(base64=true) mime_type data = 
     "\"data:" ^ mime_type ^ 

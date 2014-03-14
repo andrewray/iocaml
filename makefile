@@ -1,6 +1,6 @@
 all: _build/iocaml.top
 
-FILES = log Ipython_json_t Ipython_json_j message sockets completion iocaml
+FILES = log Ipython_json_t Ipython_json_j base64 message sockets completion iocaml
 ML = $(foreach file,$(FILES),$(file).ml)
 MLI = $(foreach file,$(FILES),$(file).mli)
 CMO = $(foreach file,$(FILES),_build/$(file).cmo)
@@ -11,7 +11,7 @@ CMTI = $(foreach file,$(FILES),_build/$(file).cmti)
 
 SRC = iocaml_main.ml $(ML) $(MLI)
 
-PKG = threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,compiler-libs,ocp-index.lib,optcomp 
+PKG = threads,ZMQ,uuidm,yojson,atdgen,compiler-libs,ocp-index.lib
 
 Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipython_json.atd
 	atdgen -t Ipython_json.atd
@@ -25,7 +25,7 @@ OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
 _build/iocaml.top: $(SRC)
 	ocamlbuild -use-ocamlfind $(CMO_TGT) iocaml_main.cmo
 	ocamlfind ocamlmktop -thread -linkpkg \
-		-package threads,ZMQ,uuidm,yojson,atdgen,cryptokit,netstring,ocp-indent.lib,optcomp,compiler-libs \
+		-package threads,ZMQ,uuidm,yojson,atdgen,ocp-indent.lib,compiler-libs \
 		-I $(OCP_INDEX_INC) \
 		$(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) \
 		$(CMO) _build/iocaml_main.cmo \
