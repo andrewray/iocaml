@@ -1,14 +1,14 @@
 <Ipython_json_{t,j}.ml{,i}>: package(yojson), package(atdgen)
 
-<message.ml{,i}>: package(ZMQ), package(netstring), package(uuidm)
+<message.ml{,i}>: package(ZMQ), package(uuidm)
 
 <sockets.ml{,i}>: package(ZMQ)
 
 <completion.ml{,i}>: package(ocp-index.lib)
 
-<iocaml.ml{,i}>: syntax(camlp4o), package(threads), package(optcomp), package(cryptokit), package(yojson), package(compiler-libs), package(ocp-index.lib)
+<iocaml.ml{,i}>: package(threads), package(yojson), package(compiler-libs), package(ocp-index.lib)
 
-<iocaml.top>: package(threads), package(ZMQ), package(uuidm), package(yojson), package(atdgen), package(cryptokit), package(netstring), package(compiler-libs), package(ocp-index.lib), package(optcomp)
+<iocaml.top>: package(threads), package(ZMQ), package(uuidm), package(yojson), package(atdgen), package(compiler-libs), package(ocp-index.lib)
 
 true: bin_annot
 true: thread
