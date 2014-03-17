@@ -11,8 +11,6 @@ CMTI = $(foreach file,$(FILES),_build/$(file).cmti)
 
 SRC = iocaml_main.ml $(ML) $(MLI)
 
-PKG = threads,ZMQ,uuidm,yojson,atdgen,compiler-libs,ocp-index.lib
-
 Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipython_json.atd
 	atdgen -t Ipython_json.atd
 	atdgen -j Ipython_json.atd
@@ -24,7 +22,7 @@ OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
 
 _build/iocaml.top: $(SRC)
 	ocamlbuild -use-ocamlfind $(CMO_TGT) iocaml_main.cmo
-	ocamlfind ocamlmktop -thread -linkpkg \
+	ocamlfind ocamlmktop -g -thread -linkpkg \
 		-package threads,ZMQ,uuidm,yojson,atdgen,ocp-indent.lib,compiler-libs \
 		-I $(OCP_INDEX_INC) \
 		$(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) \

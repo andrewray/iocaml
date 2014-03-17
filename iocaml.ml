@@ -95,7 +95,7 @@ module Exec = struct
         | _ -> raise Not_found
 
     exception Exit
-    let report_error x = 
+    let try_report_error x = 
         try begin
             Errors.report_error formatter x; 
             (try begin
@@ -103,8 +103,12 @@ module Exec = struct
                     Format.pp_print_flush formatter ()
             end with _ -> ()); 
             false
-        end with x -> (* shouldn't happen any more *) 
-            (Format.fprintf formatter "exn: %s@." (Printexc.to_string x); false)
+        end with x -> begin
+            (* report_error will raise an exception when camlp4 is enabled, just ignore it. *)
+            (*Format.fprintf formatter "%s@." (Printexc.get_backtrace());
+            Format.fprintf formatter "report error exn: %s@." (Printexc.to_string x);*)
+            false
+        end
 
     let run_cell_lb execution_count lb =
         let cell_name = "["^string_of_int execution_count^"]" in
@@ -122,7 +126,7 @@ module Exec = struct
             end with
             | Exit -> false
             | Sys.Break -> (Format.fprintf formatter "Interrupted.@."; false)
-            | x -> report_error x
+            | x -> try_report_error x
         in
         success
 
@@ -228,6 +232,20 @@ module Shell = struct
     type iopub_resp = 
         | Iopub_ok
         | Iopub_context of message option
+
+    let escape_html b = 
+        let len = Buffer.length b in
+        let b' = Buffer.create len in
+        for i=0 to len - 1 do
+            match Buffer.nth b i with
+            | '&' -> Buffer.add_string b' "&amp;"
+            | '<' -> Buffer.add_string b' "&lt;" 
+            | '>' -> Buffer.add_string b' "&gt;" 
+            (*| '\'' -> Buffer.add_string b' "&apos;"*)
+            | '\"' -> Buffer.add_string b' "&quot;" 
+            | _ as x -> Buffer.add_char b' x
+        done;
+        b'
 
     let mime_message_content mime_type base64 data = 
         let data = 
@@ -377,7 +395,31 @@ module Shell = struct
             (* eval code *)
             let status = Exec.run_cell !execution_count e.code in
             Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
-
+    
+            let pyout status = 
+                (* XXX use classes *)
+                let colour = if status then "color:slategray" else "color:red" in
+                let buffer = Buffer.contents (escape_html Exec.buffer) in
+                let data = "<pre style=\"" ^ colour ^ "\">" ^ buffer ^ "</pre>" in
+                send_iopub_u (Iopub_send_message 
+                    (Pyout { 
+                        po_execution_count = !execution_count;
+                        po_data = `Assoc [ "text/html", `String data ];
+                        po_metadata = `Assoc []; }))
+            in
+            
+            send_h sockets.shell msg
+                (Execute_reply {
+                    status = "ok";
+                    execution_count = !execution_count;
+                    ename = None; evalue = None; traceback = None; payload = None;
+                    er_user_variables = None; er_user_expressions = None;
+                });
+            if (not status) || (not !suppress_compiler) then begin
+                pyout status;
+            end;
+            
+            (*
             (* output messages *)
             if status then begin
                 (* execution ok *)
@@ -395,7 +437,6 @@ module Shell = struct
                 if not !suppress_compiler then
                     send_iopub_u (Iopub_send_message 
                         (Stream { st_name="stdout"; st_data=Buffer.contents Exec.buffer }))
-
             end else begin
                 (* execution error *)
                 send_h sockets.shell msg
@@ -411,7 +452,7 @@ module Shell = struct
                     });
                 send_iopub_u (Iopub_send_message 
                     (Stream { st_name="stderr"; st_data=Buffer.contents Exec.buffer }));
-            end;
+            end; *)
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
@@ -488,7 +529,7 @@ end
 (* main *)
 
 let () = Printf.printf "[iocaml] Starting kernel\n%!" 
-let () = Sys.interactive := false
+(*let () = Sys.interactive := false*)
 let () = Toploop.set_paths() 
 let () = !Toploop.toplevel_startup_hook() 
 let () = Toploop.initialize_toplevel_env() 

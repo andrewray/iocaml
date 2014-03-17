@@ -4,7 +4,7 @@
  *   (c) 2014 MicroJamJar Ltd
  *
  * Author(s): andy.ray@ujamjar.com
- * Description: Use ocp-index to fill out the competion and object-info messages
+ * Description: Use ocp-index to fill out the completion and object-info messages
  *
  *)
 

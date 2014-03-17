@@ -12,3 +12,4 @@
 
 true: bin_annot
 true: thread
+true: debug
