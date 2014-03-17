@@ -9,20 +9,20 @@
  *)
 
 (*******************************************************************************)
-(* command line *)
+(* global options *)
 
-let connection_file_name = ref ""
 let suppress_stdout = ref false
 let suppress_stderr = ref false
 let suppress_compiler = ref false
-let packages = ref []
+let output_cell_max_height = ref "100px"
+
+(*******************************************************************************)
+(* command line *)
+
+let connection_file_name = ref ""
 let completion = ref false
 let object_info = ref false
-let thread = ref false
-type syntax = Syntax_none | Syntax_camlp4o | Syntax_camlp4r
-let syntax = ref Syntax_none
-
-let output_cell_max_height = ref "100px"
+let init_file = ref ""
 
 let ci_stdin = ref 50000
 let ci_shell = ref 50001
@@ -33,34 +33,12 @@ let ci_transport = ref "tcp"
 let ci_ip_addr = ref ""
 
 let () = 
-    let suppress = 
-        [
-            "stdout",  (fun () -> suppress_stdout := true);
-            "stderr",  (fun () -> suppress_stderr := true);
-            "compiler",(fun () -> suppress_compiler := true);
-            "all",     (fun () -> suppress_stdout := true;
-                                  suppress_stderr := true;
-                                  suppress_compiler := true);
-        ]
-    in
-    let syntax = 
-        [
-            "none", (fun () -> syntax := Syntax_none);
-            "camlp4o", (fun () -> syntax := Syntax_camlp4o);
-            "camlp4r", (fun () -> syntax := Syntax_camlp4r);
-        ]
-    in
-    let symbol s = Arg.Symbol(List.map fst s, (fun s' -> (List.assoc s' s) ())) in
     Arg.(parse
         (align [
-            "-log", String(Log.open_log_file), "<filename> open log file";
+            "-log", String(Log.open_log_file), "<file> open log file";
             "-connection-file", Set_string(connection_file_name),
                 "<filename> connection file name";
-            "-suppress", symbol suppress, " suppress channel at start up";
-            "-package", String(fun s -> packages := s :: !packages), 
-                "<package> load package(s) at startup";
-            "-thread", Set(thread), " enable system threads";
-            "-syntax", symbol syntax, " enable camlp4 pre-processor";
+            "-init", Set_string(init_file), "<file> load <file> instead of default init file";
             "-completion", Set(completion), " enable tab completion";
             "-object-info", Set(object_info), " enable introspection";
             (* pass connection info through command line *)
@@ -98,7 +76,7 @@ module Exec = struct
     let buffer = Buffer.create 100 
     let formatter = Format.formatter_of_buffer buffer 
 
-    let run_cell_lb2 execution_count lb = 
+    let run_cell_lb execution_count lb = 
 
         let get_error_info exn = 
             Errors.report_error formatter exn;
@@ -118,7 +96,7 @@ module Exec = struct
             [Error(try get_error_info exn with _ -> "Syntax error.")]
         end
         | Ok(phrases) -> begin
-            (* build a list of return messages, until there is an exception *)
+            (* build a list of return messages (until there is an error) *)
             let rec run out_messages phrases =
                 match phrases with
                 | [] -> out_messages
@@ -137,7 +115,7 @@ module Exec = struct
         end
 
     let run_cell execution_count code = 
-        run_cell_lb2 execution_count 
+        run_cell_lb execution_count 
             (* little hack - make sure code ends with a '\n' otherwise the
              * error reporting isn't quite right *)
             Lexing.(from_string (code ^ "\n"))
@@ -439,41 +417,6 @@ else
                     er_user_variables = None; er_user_expressions = None;
                 });
             List.iter (fun m -> if not !suppress_compiler then pyout m) status;
-            
-            (*
-            (* output messages *)
-            if status then begin
-                (* execution ok *)
-                send_h sockets.shell msg
-                    (Execute_reply {
-                        status = "ok";
-                        execution_count = !execution_count;
-                        ename = None;
-                        evalue = None;
-                        traceback = None;
-                        payload = Some([]);
-                        er_user_variables = Some(`Assoc[]);
-                        er_user_expressions = Some(`Assoc[]);
-                    });
-                if not !suppress_compiler then
-                    send_iopub_u (Iopub_send_message 
-                        (Stream { st_name="stdout"; st_data=Buffer.contents Exec.buffer }))
-            end else begin
-                (* execution error *)
-                send_h sockets.shell msg
-                    (Execute_reply {
-                        status = "error";
-                        execution_count = !execution_count;
-                        ename = Some("generic");
-                        evalue = Some("error");
-                        traceback = Some([]);
-                        payload = None;
-                        er_user_variables = None;
-                        er_user_expressions = None;
-                    });
-                send_iopub_u (Iopub_send_message 
-                    (Stream { st_name="stderr"; st_data=Buffer.contents Exec.buffer }));
-            end; *)
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
@@ -554,6 +497,7 @@ let () = Printf.printf "[iocaml] Starting kernel\n%!"
 let () = Toploop.set_paths() 
 let () = !Toploop.toplevel_startup_hook() 
 let () = Toploop.initialize_toplevel_env() 
+let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
 
 let connection_info = 
     if !ci_ip_addr <> "" then
@@ -639,35 +583,34 @@ let cell_context () =
         | Shell.Iopub_context(m) -> m
         | _ -> None
 
-let () = 
-    (* set startup options *)
-    let command = 
-"
-let () =
-  try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")
-  with Not_found -> ()
-;;
-
-#use \"topfind\" ;;
-"
+let () = (* load .iocamlinit *)
+    let use file =
+        let file = open_in file in
+        let data = 
+            let buffer = Buffer.create 100 in
+            let rec f () = 
+                match try Some(input_line file) with _ -> None with
+                | Some(x) -> Buffer.add_string buffer x; Buffer.add_string buffer "\n"; f()
+                | None -> Buffer.contents buffer
+            in
+            f()
+        in
+        let status = Exec.run_cell (-1) data in
+        let () = List.iter 
+            (function
+                | Ok(x) -> Log.log x
+                | Error(x) -> Log.log x; failwith ("couldn't load init file\n" ^ x)) status
+        in
+        close_in file
     in
-    let command = List.fold_left 
-        (fun com (p,c) -> if p then com ^ c else com) command
-        [
-            !thread, "#thread;;\n";
-            !syntax = Syntax_camlp4o, "#camlp4o;;\n"; 
-            !syntax = Syntax_camlp4r, "#camlp4r;;\n";
-            !packages <> [],
-                "#require \"" ^ String.concat "," (List.rev !packages) ^ "\";;\n"
-        ]
-    in
-    let status = Exec.run_cell (-1) command in
-    Log.log command;
-    List.iter (function Ok(m) -> Log.log m
-                      | Error(m) -> Log.log m; failwith "Couldn't load startup packages") status;
-    ()
-
-let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
+    if !init_file = "" then
+        (if Sys.file_exists ".iocamlinit" then use ".iocamlinit"
+        else 
+            let init_file = Filename.concat (Sys.getenv "HOME") ".iocamlinit" in
+            if Sys.file_exists init_file then use init_file)
+    else
+        if Sys.file_exists !init_file then use !init_file
+        else failwith ("Init file not found")
 
 let main () =  
     try
