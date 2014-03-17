@@ -58,6 +58,9 @@ val index : LibIndex.t
 
 type cell_context
 
+(** css value for max-height property used for compiler messages *)
+val output_cell_max_height : string ref
+
 (** send message to iopub thread *)
 val send_iopub : Shell.iopub_message -> Shell.iopub_resp
 

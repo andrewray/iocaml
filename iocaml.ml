@@ -22,6 +22,8 @@ let thread = ref false
 type syntax = Syntax_none | Syntax_camlp4o | Syntax_camlp4r
 let syntax = ref Syntax_none
 
+let output_cell_max_height = ref "100px"
+
 let ci_stdin = ref 50000
 let ci_shell = ref 50001
 let ci_iopub = ref 50002
@@ -76,10 +78,9 @@ let () =
 (*******************************************************************************)
 (* code execution in the top level *)
 
-module Exec = struct
+type ('a,'b) status = Ok of 'a | Error of 'b
 
-    let buffer = Buffer.create 4096
-    let formatter = Format.formatter_of_buffer buffer
+module Exec = struct
 
     let get_error_loc = function 
         | Syntaxerr.Error(x) -> Syntaxerr.location_of_error x
@@ -94,46 +95,52 @@ module Exec = struct
         | Translmod.Error(loc, _) -> loc
         | _ -> raise Not_found
 
-    exception Exit
-    let try_report_error x = 
-        try begin
-            Errors.report_error formatter x; 
-            (try begin
-                if Location.highlight_locations formatter (get_error_loc x) Location.none then 
-                    Format.pp_print_flush formatter ()
-            end with _ -> ()); 
-            false
-        end with x -> begin
-            (* report_error will raise an exception when camlp4 is enabled, just ignore it. *)
-            (*Format.fprintf formatter "%s@." (Printexc.get_backtrace());
-            Format.fprintf formatter "report error exn: %s@." (Printexc.to_string x);*)
-            false
-        end
+    let buffer = Buffer.create 100 
+    let formatter = Format.formatter_of_buffer buffer 
 
-    let run_cell_lb execution_count lb =
+    let run_cell_lb2 execution_count lb = 
+
+        let get_error_info exn = 
+            Errors.report_error formatter exn;
+            ignore (Location.highlight_locations formatter (get_error_loc exn) Location.none);
+            Format.pp_print_flush formatter ();
+            Buffer.contents buffer
+        in
+
         let cell_name = "["^string_of_int execution_count^"]" in
         Buffer.clear buffer;
         Location.init lb cell_name;
         Location.input_name := cell_name;
         Location.input_lexbuf := Some(lb);
-        let success =
-            try begin
-                List.iter
-                    (fun ph ->
-                        if not (Toploop.execute_phrase true formatter ph) then raise Exit)
-                    (!Toploop.parse_use_file lb);
-                true
-            end with
-            | Exit -> false
-            | Sys.Break -> (Format.fprintf formatter "Interrupted.@."; false)
-            | x -> try_report_error x
-        in
-        success
 
-    let run_cell execution_count code = run_cell_lb execution_count 
-        (* little hack - make sure code ends with a '\n' otherwise the
-         * error reporting isn't quite right *)
-        Lexing.(from_string (code ^ "\n"))
+        match try Ok(!Toploop.parse_use_file lb) with x -> Error(x) with
+        | Error(exn) -> begin
+            [Error(try get_error_info exn with _ -> "Syntax error.")]
+        end
+        | Ok(phrases) -> begin
+            (* build a list of return messages, until there is an exception *)
+            let rec run out_messages phrases =
+                match phrases with
+                | [] -> out_messages
+                | phrase::phrases -> begin
+                    Buffer.clear buffer;
+                    match try Ok(Toploop.execute_phrase true formatter phrase)
+                          with exn -> Error(exn) with
+                    | Ok(true) -> run (Ok(Buffer.contents buffer) :: out_messages) phrases
+                    | Ok(false) -> Error(Buffer.contents buffer) :: out_messages
+                    | Error(Sys.Break) -> Error("Interrupted.") :: out_messages
+                    | Error(exn) -> 
+                        Error(try get_error_info exn with _ -> "Execution error.") :: out_messages
+                end
+            in
+            List.rev (run [] phrases)
+        end
+
+    let run_cell execution_count code = 
+        run_cell_lb2 execution_count 
+            (* little hack - make sure code ends with a '\n' otherwise the
+             * error reporting isn't quite right *)
+            Lexing.(from_string (code ^ "\n"))
 
 end
 
@@ -234,10 +241,10 @@ module Shell = struct
         | Iopub_context of message option
 
     let escape_html b = 
-        let len = Buffer.length b in
+        let len = String.length b in
         let b' = Buffer.create len in
         for i=0 to len - 1 do
-            match Buffer.nth b i with
+            match b.[i] with
             | '&' -> Buffer.add_string b' "&amp;"
             | '<' -> Buffer.add_string b' "&lt;" 
             | '>' -> Buffer.add_string b' "&gt;" 
@@ -245,7 +252,7 @@ module Shell = struct
             | '\"' -> Buffer.add_string b' "&quot;" 
             | _ as x -> Buffer.add_char b' x
         done;
-        b'
+        Buffer.contents b'
 
     let mime_message_content mime_type base64 data = 
         let data = 
@@ -396,11 +403,27 @@ module Shell = struct
             let status = Exec.run_cell !execution_count e.code in
             Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
     
-            let pyout status = 
-                (* XXX use classes *)
-                let colour = if status then "color:slategray" else "color:red" in
-                let buffer = Buffer.contents (escape_html Exec.buffer) in
-                let data = "<pre style=\"" ^ colour ^ "\">" ^ buffer ^ "</pre>" in
+            let pyout message = 
+                let output_styling colour data = 
+                    let onclick = "
+onclick=\"
+if (this.style.maxHeight === 'none') 
+    this.style.maxHeight = '" ^ !output_cell_max_height ^ "';
+else
+    this.style.maxHeight = 'none'; 
+\"" 
+                    in
+                    "<pre style=\"color:" ^ colour ^ 
+                        ";max-height:" ^ !output_cell_max_height ^ ";overflow:hidden\" " ^ 
+                        onclick ^ ">" ^ 
+                        escape_html data ^ 
+                    "</pre>" 
+                in
+                let data = 
+                    match message with
+                    | Ok(data) -> output_styling "slategray" data
+                    | Error(data) -> output_styling "red" data
+                in
                 send_iopub_u (Iopub_send_message 
                     (Pyout { 
                         po_execution_count = !execution_count;
@@ -415,9 +438,7 @@ module Shell = struct
                     ename = None; evalue = None; traceback = None; payload = None;
                     er_user_variables = None; er_user_expressions = None;
                 });
-            if (not status) || (not !suppress_compiler) then begin
-                pyout status;
-            end;
+            List.iter (fun m -> if not !suppress_compiler then pyout m) status;
             
             (*
             (* output messages *)
@@ -641,9 +662,10 @@ let () =
         ]
     in
     let status = Exec.run_cell (-1) command in
-    Log.log (command);
-    Log.log (Buffer.contents Exec.buffer);
-    if not status then failwith "Couldn't load startup packages"
+    Log.log command;
+    List.iter (function Ok(m) -> Log.log m
+                      | Error(m) -> Log.log m; failwith "Couldn't load startup packages") status;
+    ()
 
 let () = Unix.putenv "TERM" "" (* make sure the compiler sees a dumb terminal *)
 
