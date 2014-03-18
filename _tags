@@ -6,7 +6,9 @@
 
 <completion.ml{,i}>: package(ocp-index.lib)
 
-<iocaml.ml{,i}>: package(threads), package(yojson), package(compiler-libs), package(ocp-index.lib)
+<exec.ml>: package(compiler-libs)
+
+<iocaml.ml{,i}>: package(threads), package(yojson), package(ocp-index.lib)
 
 <iocaml.top>: package(threads), package(ZMQ), package(uuidm), package(yojson), package(atdgen), package(compiler-libs), package(ocp-index.lib)
 

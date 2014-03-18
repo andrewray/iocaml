@@ -1,6 +1,6 @@
 all: _build/iocaml.top
 
-FILES = log Ipython_json_t Ipython_json_j base64 message sockets completion iocaml
+FILES = log Ipython_json_t Ipython_json_j base64 message sockets completion exec iocaml
 ML = $(foreach file,$(FILES),$(file).ml)
 MLI = $(foreach file,$(FILES),$(file).mli)
 CMO = $(foreach file,$(FILES),_build/$(file).cmo)
