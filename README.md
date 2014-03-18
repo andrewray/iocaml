@@ -12,7 +12,7 @@ See also
 
 * [IOCaml-kernel](https://github.com/andrewray/iocaml)
 * [IOCamlJS-kernel](https://github.com/andrewray/iocamljs)
-* [IOCaml](https://github.com/andrewray/iocamlserver)
+* [IOCaml-server](https://github.com/andrewray/iocamlserver)
 
 This repository hosts the iocaml-kernel package.
 
