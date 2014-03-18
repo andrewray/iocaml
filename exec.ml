@@ -1,7 +1,7 @@
 type ('a,'b) status = Ok of 'a | Error of 'b
 
 let get_error_loc = function 
-    | Syntaxerr.Error(x) -> Syntaxerr.location_of_error x
+    | Syntaxerr.Error(x) -> Some(Syntaxerr.location_of_error x)
     | Lexer.Error(_, loc) 
     | Typecore.Error(loc, _, _) 
     | Typetexp.Error(loc, _, _) 
@@ -10,8 +10,8 @@ let get_error_loc = function
     | Typemod.Error(loc, _, _) 
     | Translcore.Error(loc, _) 
     | Translclass.Error(loc, _) 
-    | Translmod.Error(loc, _) -> loc
-    | _ -> raise Not_found
+    | Translmod.Error(loc, _) -> Some(loc)
+    | _ -> None
 
 let buffer = Buffer.create 100 
 let formatter = Format.formatter_of_buffer buffer 
@@ -20,7 +20,10 @@ let run_cell_lb execution_count lb =
 
     let get_error_info exn = 
         Errors.report_error formatter exn;
-        ignore (Location.highlight_locations formatter (get_error_loc exn) Location.none);
+        (match get_error_loc exn with
+        | Some(loc) ->
+            ignore (Location.highlight_locations formatter loc Location.none);
+        | None -> ());
         Format.pp_print_flush formatter ();
         Buffer.contents buffer
     in
