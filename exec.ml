@@ -47,7 +47,12 @@ let run_cell_lb execution_count lb =
                 Buffer.clear buffer;
                 match try Ok(Toploop.execute_phrase true formatter phrase)
                       with exn -> Error(exn) with
-                | Ok(true) -> run (Ok(Buffer.contents buffer) :: out_messages) phrases
+                | Ok(true) ->
+                    let message = Buffer.contents buffer in
+                    let out_messages = 
+                        if message="" then out_messages else Ok(message)::out_messages 
+                    in
+                    run out_messages phrases
                 | Ok(false) -> Error(Buffer.contents buffer) :: out_messages
                 | Error(Sys.Break) -> Error("Interrupted.") :: out_messages
                 | Error(exn) -> 
