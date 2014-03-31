@@ -37,6 +37,11 @@ install: all
 
 uninstall:
 	ocamlfind remove iocaml
+	rm -f $(BINDIR)/iocaml.top
+
+reinstall:
+	-$(MAKE) uninstall
+	$(MAKE) install
 
 clean:
 	ocamlbuild -clean
