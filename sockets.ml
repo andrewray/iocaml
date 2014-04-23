@@ -1,4 +1,4 @@
-(* 
+(*
  * iocaml - an OCaml kernel for IPython
  *
  *   (c) 2014 MicroJamJar Ltd
@@ -8,33 +8,33 @@
  *
  *)
 
-let context = ZMQ.init ()
-let () = at_exit 
-    (fun () -> ZMQ.term context)
+let context = ZMQ.Context.create ()
+let () = at_exit
+    (fun () -> ZMQ.Context.terminate context)
 
-let version = [3;2] (* XXX get from ZMQ *)
+let version = [4;0] (* XXX get from ZMQ *)
 
-let addr conn port = 
+let addr conn port =
     Ipython_json_j.(conn.transport ^ "://" ^ conn.ip ^ ":" ^ string_of_int port)
 
-let open_socket typ conn port = 
+let open_socket typ conn port =
     let socket = ZMQ.Socket.(create context typ) in
     let addr = addr conn port in
     let () = ZMQ.Socket.bind socket addr in
     Log.log ("open and bind socket " ^ addr ^ "\n");
     socket
 
-let heartbeat conn = 
+let heartbeat conn =
     let socket = open_socket ZMQ.Socket.rep conn conn.Ipython_json_j.hb_port in
     while true do
         let data = ZMQ.Socket.recv socket in
         Log.log("Heartbeat\n");
         ZMQ.Socket.send socket data;
-    done; 
+    done;
     (* XXX close down properly...we never get here *)
     ZMQ.Socket.close socket
 
-type sockets = 
+type sockets =
     {
         shell : [`Router] ZMQ.Socket.t;
         control : [`Router] ZMQ.Socket.t;
@@ -43,7 +43,7 @@ type sockets =
     }
 
 let open_sockets conn =
-    { 
+    {
         shell = open_socket ZMQ.Socket.router conn conn.Ipython_json_j.shell_port;
         control = open_socket ZMQ.Socket.router conn conn.Ipython_json_j.control_port;
         stdin = open_socket ZMQ.Socket.router conn conn.Ipython_json_j.stdin_port;
@@ -51,9 +51,8 @@ let open_sockets conn =
     }
 
 let dump name socket =
-   while true do 
+   while true do
         let msg = Message.recv socket in
         let () = Message.log msg in
         ()
     done
-
