@@ -1,39 +1,51 @@
-all: _build/iocaml.top
+# new makefile - the build is about to get more complex.
 
-FILES = log Ipython_json_t Ipython_json_j base64 message sockets completion exec iocaml
-ML = $(foreach file,$(FILES),$(file).ml)
-MLI = $(foreach file,$(FILES),$(file).mli)
-CMO = $(foreach file,$(FILES),_build/$(file).cmo)
-CMO_TGT = $(foreach file,$(FILES),$(file).cmo)
-CMI = $(foreach file,$(FILES),_build/$(file).cmi)
-CMT = $(foreach file,$(FILES),_build/$(file).cmt)
-CMTI = $(foreach file,$(FILES),_build/$(file).cmti)
-
-SRC = iocaml_main.ml $(ML) $(MLI)
-
-Ipython_json_t.mli Ipython_json_t.ml Ipython_json_j.mli Ipython_json_j.ml: Ipython_json.atd
+json:
 	atdgen -t Ipython_json.atd
 	atdgen -j Ipython_json.atd
 
-# manually link ocp-index.  proper ocamlfind package includes
-# compiler-libs which breaks toplevels built with ocamlmktop.
+stub:
+	ocamlfind c iocaml_zmq_stubs.c
+
+lib: json stub
+	# compile log
+	ocamlfind c -c -g log.mli log.ml
+	# iocaml_zmq (which requires preprocessing)
+	ocamlfind c -c -g \
+		-syntax camlp4o -package lwt.unix,lwt.syntax,ctypes.foreign \
+		iocaml_zmq.mli iocaml_zmq.ml  
+	# rest of the library
+	ocamlfind c -c -g \
+		-package yojson,atdgen,compiler-libs \
+		Ipython_json_t.mli Ipython_json_j.mli base64.mli exec.mli \
+		Ipython_json_t.ml  Ipython_json_j.ml  base64.ml  exec.ml
+	ocamlfind ocamlmklib -o iocaml_lib \
+		-l zmq \
+		-package ctypes.foreign,lwt.unix,yojson \
+		iocaml_zmq_stubs.o \
+		log.cmo Ipython_json_t.cmo Ipython_json_j.cmo iocaml_zmq.cmo base64.cmo exec.cmo
+
 OCP_INDEX_INC=`ocamlfind query ocp-index.lib -predicates byte -format "%d"`
 OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
 
-_build/iocaml.top: $(SRC)
-	ocamlbuild -use-ocamlfind $(CMO_TGT) iocaml_main.cmo
+top: lib
+	ocamlfind c -c -g -thread \
+		-package threads,uuidm,yojson,atdgen,ocp-index.lib,compiler-libs \
+		message.mli sockets.mli completion.mli iocaml.mli \
+		message.ml  sockets.ml  completion.ml  iocaml.ml \
+		iocaml_main.ml
 	ocamlfind ocamlmktop -g -thread -linkpkg \
-		-package threads,ZMQ,uuidm,yojson,atdgen,ocp-indent.lib,compiler-libs \
+		-o iocaml.top \
+		-package threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs \
 		-I $(OCP_INDEX_INC) \
 		$(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) \
-		$(CMO) _build/iocaml_main.cmo \
-		-o _build/iocaml.top
+		iocaml_lib.cma message.cmo sockets.cmo completion.cmo iocaml.cmo iocaml_main.cmo
 
 BINDIR=`opam config var bin`
 
-install: all
-	ocamlfind install iocaml META $(CMI) $(CMO) $(CMT) $(CMTI)
-	cp _build/iocaml.top $(BINDIR)/iocaml.top
+install: top
+	ocamlfind install iocaml META *.cmi *.cmo *.cma *.so *.a *.o
+	cp iocaml.top $(BINDIR)/iocaml.top
 
 uninstall:
 	ocamlfind remove iocaml
@@ -44,12 +56,6 @@ reinstall:
 	$(MAKE) install
 
 clean:
-	ocamlbuild -clean
-	- rm -f Ipython_json_t.mli Ipython_json_t.ml  
-	- rm -f Ipython_json_j.mli Ipython_json_j.ml  
-	- rm -f *~
-
-######################################################################
-# we have build problems.  lets see if we can sort them out
+	rm *.cmi *.cmo *.cma *.so *.a *.o iocaml.top
 
 

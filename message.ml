@@ -10,6 +10,7 @@
 
 open Ipython_json_t
 open Ipython_json_j
+open Iocaml_zmq
 
 type message_content = 
     (* messages received from front end *)

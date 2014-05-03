@@ -8,6 +8,8 @@
  *
  *)
 
+open Iocaml_zmq
+
 let context = ZMQ.Context.create ()
 let () = at_exit
     (fun () -> ZMQ.Context.terminate context)

@@ -1,5 +1,7 @@
 Ipython_json_t
 Ipython_json_j
+Zmq_const
+Iocaml_zmq
 Log
 Message
 Sockets
