@@ -8,6 +8,8 @@
  *
  *)
 
+open Iocaml_zmq
+
 type sockets = 
     {
         shell : [`Router] ZMQ.Socket.t;

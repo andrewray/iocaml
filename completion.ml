@@ -57,8 +57,7 @@ let init () =
     (* get the ocamlc and opam library paths *)
     let paths = pread_line "ocamlc -where" @ pread_line "opam config var lib" in
     let paths = LibIndex.Misc.unique_subdirs paths in
-    List.iter (fun p ->
-        Log.log ("search path: " ^ p ^ "\n")) paths;
+    (* List.iter (fun p -> Log.log ("search path: " ^ p ^ "\n")) paths; *)
     LibIndex.load paths
 
 let find_token_back line end_pos =

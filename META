@@ -1,3 +1,20 @@
 version = "0.4.0"
 description = "IOCaml - An OCaml kernel for IPython"
+requires = "unix,yojson,atdgen,lwt.unix,ctypes.foreign"
+archive(byte) = "iocaml_lib.cma"
+
+package "notebook" (
+  description = "IOCAML - set search path for notebooks"
+)
+
+#package "exec" (
+#  description = "IOCAML - Code execution submodule (requires compiler-libs)"
+#  archive(byte) = "exec.cmo"
+#)
+#
+#package "zmq" (
+#  description = "IOCAML - Code execution submodule (requires compiler-libs)"
+#  requires = "lwt.unix,ctypes.foreign"
+#  archive(byte) = "iocaml_zmq.cmo"
+#)
 
