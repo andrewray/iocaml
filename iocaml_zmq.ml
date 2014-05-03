@@ -73,7 +73,7 @@ module Stubs = struct
     let create = foreign "zmq_ctx_new" ~check_errno:true 
       (void @-> returning (ptr context))
     (* XXX zmq_ctx_destroy on 3.2 *)
-    let term = foreign "zmq_ctx_term" 
+    let term = foreign (if major=4 then "zmq_ctx_term" else "zmq_ctx_destroy")
       (ptr context @-> returning int)
   end
 
