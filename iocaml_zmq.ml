@@ -13,31 +13,44 @@ module Stubs = struct
     (!@major,!@minor,!@patch)
 
   module Const = struct
-    let const name = foreign name (void @-> returning int)
-    let sizeof_zmq_msg_t = let f = const "iocaml_sizeof_zmq_msg_t" in f()
-    let get_const name = let f = const ("iocaml_ZMQ_" ^ name) in f()
-    let noblock   = get_const "NOBLOCK"
-    let sndmore   = get_const "SNDMORE"
-    let rcvmore   = get_const "RCVMORE"
-    let linger    = get_const "LINGER"
-    let subscribe = get_const "SUBSCRIBE"
-    let identity  = get_const "IDENTITY"
-    let fd        = get_const "FD"
-    let pollin    = get_const "POLLIN"
-    let pollout   = get_const "POLLOUT"
-    let pollerr   = get_const "POLLERR"
-    let events    = get_const "EVENTS"
-    let pair      = get_const "PAIR"
-    let pub       = get_const "PUB"
-    let sub       = get_const "SUB"
-    let req       = get_const "REQ"
-    let rep       = get_const "REP"
-    let dealer    = get_const "DEALER"
-    let router    = get_const "ROUTER"
-    let pull      = get_const "PULL"
-    let push      = get_const "PUSH"
-    let xpub      = get_const "XPUB"
-    let xsub      = get_const "XSUB"
+    let const name = (foreign ("iocaml_" ^ name) (void @-> returning int)) ()
+
+    let sizeof_zmq_msg_t = const "sizeof_zmq_msg_t" 
+
+    (* send/recv flags *)
+    let noblock   = const "ZMQ_NOBLOCK"
+    let sndmore   = const "ZMQ_SNDMORE"
+    let rcvmore   = const "ZMQ_RCVMORE"
+
+    (* socket options *)
+    let linger    = const "ZMQ_LINGER"
+    let subscribe = const "ZMQ_SUBSCRIBE"
+    let identity  = const "ZMQ_IDENTITY"
+    let fd        = const "ZMQ_FD"
+
+    (* socket events *)
+    let pollin    = const "ZMQ_POLLIN"
+    let pollout   = const "ZMQ_POLLOUT"
+    let pollerr   = const "ZMQ_POLLERR"
+    let events    = const "ZMQ_EVENTS"
+
+    (* socket types *)
+    let pair      = const "ZMQ_PAIR"
+    let pub       = const "ZMQ_PUB"
+    let sub       = const "ZMQ_SUB"
+    let req       = const "ZMQ_REQ"
+    let rep       = const "ZMQ_REP"
+    let dealer    = const "ZMQ_DEALER"
+    let router    = const "ZMQ_ROUTER"
+    let pull      = const "ZMQ_PULL"
+    let push      = const "ZMQ_PUSH"
+    let xpub      = const "ZMQ_XPUB"
+    let xsub      = const "ZMQ_XSUB"
+
+    (* posix (unix) errors *)
+    let eagain    = const "EAGAIN"
+    let eintr     = const "EINTR"
+
   end
 
   type context
@@ -142,7 +155,12 @@ module ZMQ = struct
   let raise_if s x = 
     if x == -1 then
       let errno = Stubs.Utils.errno () in
-      raise (Zmq_exception(errno, s, Stubs.Utils.strerror errno))
+      let errstr = Stubs.Utils.strerror errno in
+      (* map these to posix errors for Zmq_lwt *)
+      if errno = Stubs.Const.eagain then raise Unix.(Unix_error(EAGAIN, errstr, ""))
+      else if errno = Stubs.Const.eintr then raise Unix.(Unix_error(EINTR, errstr, ""))
+      (* otherwise use a zmq expection *)
+      else raise (Zmq_exception(errno, s, errstr))
     else ()
 
   module Context = struct
