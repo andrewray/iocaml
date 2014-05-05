@@ -1,3 +1,5 @@
+![IOCaml logo](http://github.com/andrewray/iocamlserver/raw/master/logos/IOlogo.png "IOCaml logo")
+
 IOCaml
 ======
 
