@@ -239,9 +239,9 @@ module ZMQ = struct
       let () = Stubs.Message.init_size p_msg size_t |> raise_if "msg init size" in
 
       (* fill out message data *)
-      let data = Array.from_ptr (from_voidp char (Stubs.Message.data p_msg)) size in
+      let data = CArray.from_ptr (from_voidp char (Stubs.Message.data p_msg)) size in
       for i=0 to size-1 do
-        Array.set data i m.[i]
+        CArray.set data i m.[i]
       done;
 
       (* send message *)
@@ -267,10 +267,10 @@ module ZMQ = struct
       let size_t = Stubs.Message.size p_msg in
       let size = Unsigned.Size_t.to_int size_t in
 
-      let data = Array.from_ptr (from_voidp char (Stubs.Message.data p_msg)) size in
+      let data = CArray.from_ptr (from_voidp char (Stubs.Message.data p_msg)) size in
       let result = String.create size in
       for i=0 to size-1 do
-        result.[i] <- Array.get data i
+        result.[i] <- CArray.get data i
       done;
       (* clean up message *)
       let () = Stubs.Message.close p_msg |> raise_if "msg close" in
