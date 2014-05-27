@@ -61,11 +61,11 @@ module Stubs = struct
 
   type message
   let message : message structure typ = structure "zmq_msg_t"
-  (*let _ = field message "message_struct_data" (array Const.sizeof_zmq_msg_t uchar) *)
-  let _ = field message "data0" uint64_t 
+  let _ = field message "message_struct_data" (array Const.sizeof_zmq_msg_t uchar) 
+  (*let _ = field message "data0" uint64_t 
   let _ = field message "data1" uint64_t
   let _ = field message "data2" uint64_t
-  let _ = field message "data3" uint64_t
+  let _ = field message "data3" uint64_t*)
   let () = seal message
 
 
