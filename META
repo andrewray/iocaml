@@ -4,6 +4,7 @@ requires = "unix,yojson,atdgen,lwt.unix,ctypes.foreign"
 archive(byte) = "iocaml_lib.cma"
 
 package "notebook" (
+  version = "0.4.3"
   description = "IOCAML - set search path for notebooks"
 )
 

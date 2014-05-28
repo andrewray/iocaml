@@ -1,0 +1,10 @@
+version = "{VERSION}"
+description = "IOCaml - infrastructure library"
+requires = "unix,yojson,atdgen,lwt.unix,ctypes.foreign"
+archive(byte) = "iocaml_lib.cma"
+
+package "notebook" (
+  version = "{VERSION}"
+  description = "IOCaml - search path for notebooks"
+)
+

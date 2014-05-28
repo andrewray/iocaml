@@ -45,11 +45,11 @@ top: lib
 BINDIR=`opam config var bin`
 
 install: top
-	ocamlfind install iocaml META *.cmi *.cmo *.cma *.so *.a *.o
+	ocamlfind install iocaml-kernel META *.cmi *.cmo *.cma *.so *.a *.o
 	cp iocaml.top $(BINDIR)/iocaml.top
 
 uninstall:
-	ocamlfind remove iocaml
+	ocamlfind remove iocaml-kernel
 	rm -f $(BINDIR)/iocaml.top
 
 reinstall:
