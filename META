@@ -1,10 +1,10 @@
-version = "0.4.3"
-description = "IOCaml - An OCaml kernel for IPython"
+version = "0.4.4"
+description = "IOCaml - infrastructure library"
 requires = "unix,yojson,atdgen,lwt.unix,ctypes.foreign"
 archive(byte) = "iocaml_lib.cma"
 
 package "notebook" (
-  version = "0.4.3"
-  description = "IOCAML - set search path for notebooks"
+  version = "0.4.4"
+  description = "IOCaml - search path for notebooks"
 )
 
