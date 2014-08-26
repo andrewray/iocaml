@@ -22,7 +22,11 @@ let run_cell_lb execution_count lb =
         Errors.report_error formatter exn;
         (match get_error_loc exn with
         | Some(loc) ->
+#if ocaml_version < (4,2)
             ignore (Location.highlight_locations formatter loc Location.none);
+#else
+            ignore (Location.highlight_locations formatter [loc]);
+#endif
         | None -> ());
         Format.pp_print_flush formatter ();
         Buffer.contents buffer

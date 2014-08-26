@@ -336,17 +336,21 @@ module Shell = struct
         raise (Failure "Invalid message on shell socket")
 
     let complete_request index socket msg x = 
+#if has_ocp=1
         if !completion then 
             let reply = Completion.complete index x in
             send_h socket msg (Complete_reply reply)
         else
+#endif
             ()
 
     let object_info_request index socket msg x = 
+#if has_ocp=1
         if !object_info then
             let reply = Completion.info index x in
             send_h socket msg (Object_info_reply reply)
         else
+#endif
             ()
 
     let connect_request socket msg = ()
@@ -445,8 +449,12 @@ let send_flush () =
     Pervasives.flush stdout;
     Pervasives.flush stderr;
     ignore (send_iopub Shell.Iopub_flush)
-    
+
+#if has_ocp=1
 let index = Completion.init ()
+#else
+let index = ()
+#endif
 
 let suppress_stdout b = ignore (send_iopub (Shell.Iopub_suppress_stdout b))
 let suppress_stderr b = ignore (send_iopub (Shell.Iopub_suppress_stderr b))

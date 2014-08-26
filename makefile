@@ -30,17 +30,32 @@ lib: json stub
 OCP_INDEX_INC=`ocamlfind query ocp-index.lib -predicates byte -format "%d"`
 OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
 
+HAS_OCP = $(shell if ocamlfind query ocp-index.lib >/dev/null 2>&1; then echo 1; else echo 0; fi)
+ifeq ($(HAS_OCP),1)
+TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs
+TOP_SRC = \
+	message.mli sockets.mli completion.mli exec.mli iocaml.mli \
+	message.ml  sockets.ml  completion.ml  exec.ml  iocaml.ml 
+TOP_OBJ =  message.cmo sockets.cmo completion.cmo exec.cmo iocaml.cmo 
+TOP_OCP = -I $(OCP_INDEX_INC) $(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) 
+else
+TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,compiler-libs
+TOP_SRC = \
+	message.mli sockets.mli exec.mli iocaml.mli \
+	message.ml  sockets.ml  exec.ml  iocaml.ml 
+TOP_OBJ =  message.cmo sockets.cmo exec.cmo iocaml.cmo 
+TOP_OCP = 
+endif
+
 top: lib
 	ocamlfind c -c -g -thread \
-		-package threads,uuidm,yojson,atdgen,ocp-index.lib,compiler-libs \
-		message.mli sockets.mli completion.mli exec.mli iocaml.mli \
-		message.ml  sockets.ml  completion.ml  exec.ml  iocaml.ml 
+		-syntax camlp4o -package optcomp -ppopt "-let has_ocp=0" \
+		-package $(TOP_PKG) \
+		$(TOP_SRC)
 	ocamlfind ocamlmktop -g -thread -linkpkg \
 		-o iocaml.top \
-		-package threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs \
-		-I $(OCP_INDEX_INC) \
-		$(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) \
-		iocaml_lib.cma message.cmo sockets.cmo completion.cmo exec.cmo iocaml.cmo iocaml_main.ml
+		-package $(TOP_PKG) $(TOP_OCP) \
+		iocaml_lib.cma $(TOP_OBJ) iocaml_main.ml
 
 BINDIR=`opam config var bin`
 

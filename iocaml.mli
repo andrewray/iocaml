@@ -54,7 +54,11 @@ val suppress_compiler : bool -> unit
 val suppress_all : bool -> unit
 
 (** ocp-index *)
+#if has_ocp = 1
 val index : LibIndex.t
+#else
+val index : unit
+#endif
 
 type cell_context
 
