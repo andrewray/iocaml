@@ -51,7 +51,7 @@ top: lib
 	ocamlfind c -c -g -thread \
 		-syntax camlp4o -package optcomp -ppopt "-let has_ocp=$(HAS_OCP)" \
 		-package $(TOP_PKG) \
-		$(TOP_SRC)
+		$(TOP_OCP) $(TOP_SRC)
 	ocamlfind ocamlmktop -g -thread -linkpkg \
 		-o iocaml.top \
 		-package $(TOP_PKG) $(TOP_OCP) \
