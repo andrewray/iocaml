@@ -49,7 +49,7 @@ endif
 
 top: lib
 	ocamlfind c -c -g -thread \
-		-syntax camlp4o -package optcomp -ppopt "-let has_ocp=0" \
+		-syntax camlp4o -package optcomp -ppopt "-let has_ocp=$(HAS_OCP)" \
 		-package $(TOP_PKG) \
 		$(TOP_SRC)
 	ocamlfind ocamlmktop -g -thread -linkpkg \
