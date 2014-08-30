@@ -1,5 +1,7 @@
 ![IOCaml logo](https://raw.githubusercontent.com/andrewray/iocamlserver/master/logos/IOlogo.png "IOCaml logo")
 
+[![Build Status](https://travis-ci.org/andrewray/iocaml.svg?branch=master)](https://travis-ci.org/andrewray/iocaml)
+
 IOCaml
 ======
 
