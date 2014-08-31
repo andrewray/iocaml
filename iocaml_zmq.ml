@@ -152,6 +152,8 @@ module ZMQ = struct
 
   exception Zmq_exception of int * string * string
 
+  let (|>) a f = f a
+
   let raise_if s x = 
     if x == -1 then
       let errno = Stubs.Utils.errno () in
