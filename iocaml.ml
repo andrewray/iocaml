@@ -379,6 +379,8 @@ module Shell = struct
             | History_reply(_) | Status(_) | Pyin(_) 
             | Pyout(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
+
+            | Comm_open -> ()
         in
 
         let rec run () = 

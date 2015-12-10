@@ -35,6 +35,8 @@ type message_content =
     | Stream of stream
     | Clear of clear_output
     | Display_data of display_data
+    (* custom messages *)
+    | Comm_open
 
 val content_of_json : header_info -> string -> message_content
 val json_of_content : message_content -> string

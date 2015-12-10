@@ -12,7 +12,7 @@ open Ipython_json_t
 open Ipython_json_j
 open Iocaml_zmq
 
-type message_content = 
+type message_content =
     (* messages received from front end *)
     | Connect_request
     | Kernel_info_request
@@ -36,8 +36,10 @@ type message_content =
     | Stream of stream
     | Clear of clear_output
     | Display_data of display_data
+    (* custom messages *)
+    | Comm_open
 
-let content_of_json hdr c = 
+let content_of_json hdr c =
     match hdr.msg_type with
     | "connect_request" -> Connect_request
     | "kernel_info_request" -> Kernel_info_request
@@ -61,6 +63,9 @@ let content_of_json hdr c =
     | "stream" -> Stream(stream_of_string c)
     | "display_data" -> Display_data(display_data_of_string c)
     | "clear_output" -> Clear(clear_output_of_string c)
+
+    | "comm_open" -> Comm_open
+
     | _ -> failwith ("content_of_json: " ^ hdr.msg_type)
 
 let json_of_content = function
@@ -87,6 +92,8 @@ let json_of_content = function
     | Clear(x) -> string_of_clear_output x
     | Display_data(x) -> string_of_display_data x
 
+    | Comm_open -> "{}"
+
 let msg_type_of_content = function
     | Connect_request -> "connect_request"
     | Kernel_info_request -> "kernel_info_request"
@@ -111,7 +118,9 @@ let msg_type_of_content = function
     | Clear(_) -> "clear_output"
     | Display_data(_) -> "display_data"
 
-type message = 
+    | Comm_open -> "comm_open"
+
+type message =
     {
         ids : string array;
         hmac : string;
