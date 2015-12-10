@@ -15,14 +15,13 @@ PKG=iocaml-kernel.999.9.9
 # install ocaml compilers
 echo "yes" | sudo add-apt-repository ppa:$ppa
 sudo apt-get update -qq
-sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
+sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam libffi-dev
 
 # initialize opam
 export OPAMYES=1
-opam init 
+opam init
 eval `opam config env`
 
-# add dev repo
 opam remote add iocaml-dev git://github.com/andrewray/opam.git
 opam update
 
@@ -33,6 +32,7 @@ sudo apt-get install -qq $DEPEXT
 fi
 
 # install package deps
+opam install ctypes-foreign
 opam install $PKG --deps-only
 
 # build 
