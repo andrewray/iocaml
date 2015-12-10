@@ -40,7 +40,6 @@ type execute_request = {
     code : string;
     silent : bool;
     store_history : bool;
-    user_variables : dyn;
     user_expressions : dyn;
     allow_stdin : bool;
 }
@@ -61,7 +60,6 @@ type execute_reply = {
     ?traceback : string list option;
     (* if execution was ok *)
     ?payload : payload list option;
-    ?er_user_variables <json name="user_variables"> : dyn option;
     ?er_user_expressions <json name="user_expressions"> : dyn option;
 }
 
