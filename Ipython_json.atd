@@ -105,9 +105,7 @@ type object_info_reply = {
 (*********************************************************************)
 
 type complete_request = {
-    cr_text <json name="text"> : string;
-    line : string;
-    block : unit;
+    line <json name="code"> : string;
     cursor_pos : int;
 }
 
