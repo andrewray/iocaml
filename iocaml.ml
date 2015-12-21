@@ -306,13 +306,13 @@ module Shell = struct
                             `String (Exec.html_of_status message !output_cell_max_height) ];
                         po_metadata = `Assoc []; }))
             in
-            
+
             send_h sockets.shell msg
                 (Execute_reply {
                     status = "ok";
                     execution_count = !execution_count;
                     ename = None; evalue = None; traceback = None; payload = None;
-                    er_user_variables = None; er_user_expressions = None;
+                    er_user_expressions = None;
                 });
             List.iter (fun m -> if not !suppress_compiler then pyout m) status;
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
@@ -379,6 +379,8 @@ module Shell = struct
             | History_reply(_) | Status(_) | Pyin(_) 
             | Pyout(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
+
+            | Comm_open -> ()
         in
 
         let rec run () = 
