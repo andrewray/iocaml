@@ -24,24 +24,23 @@ This repository hosts the iocaml-kernel package.
 
 # Installation
 
-Installation requires opam and OCaml >= 4.01.0.
-
-The kernels can be used with either the IOCaml notebook server or 
-the IPython server.  Installation of the later is described 
-[here](https://github.com/andrewray/iocaml/wiki/ipython_install).
-
-To use the OCaml server you just need to 
+Installation requires opam and OCaml >= 4.01.0.  To use the OCaml server 
 
 ```
 $ opam install iocaml
 ```
 
-which will also install the kernels.  To just install the kernels use
+which will install the kernels and server.  The individual kernels can be instaled with
 
 ```
 $ opam install iocaml-kernel
-$ opam install iocaml-kerneljs
+$ opam install iocamljs-kernel
 ```
+
+The kernel can also be used with the IPython/Jupyter server.
+
+* [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install) 
+* [Jupyter](https://github.com/andrewray/iocaml/wiki/jupyter)
 
 ## Command line options
 
