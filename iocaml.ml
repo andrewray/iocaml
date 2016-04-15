@@ -296,7 +296,10 @@ module Shell = struct
 
             (* eval code *)
             let status = Exec.run_cell !execution_count e.code in
-            Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
+            Log.log "flush\n";
+            Pervasives.flush stdout; Pervasives.flush stderr; 
+            Log.log "iopub_flush\n";
+            send_iopub_u Iopub_flush;
     
             let pyout message = 
                 send_iopub_u (Iopub_send_message 
@@ -307,6 +310,8 @@ module Shell = struct
                         po_metadata = `Assoc []; }))
             in
 
+            Log.log "shell\n";
+
             send_h sockets.shell msg
                 (Execute_reply {
                     status = "ok";
@@ -314,7 +319,9 @@ module Shell = struct
                     ename = None; evalue = None; traceback = None; payload = None;
                     er_user_expressions = None;
                 });
+            Log.log "pyout\n";
             List.iter (fun m -> if not !suppress_compiler then pyout m) status;
+            Log.log "iopub\n";
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
 

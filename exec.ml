@@ -54,10 +54,34 @@ let run_cell_lb execution_count lb =
     | Ok(phrases) -> begin
         (* build a list of return messages (until there is an error) *)
         let rec run out_messages phrases =
+          Log.log "run\n";
             match phrases with
-            | [] -> out_messages
+            | [] -> 
+              Log.log ("DONE\n");
+              out_messages
             | phrase::phrases -> begin
+                let () = 
+                  let buf = Buffer.create 1024 in
+                  let fmt = Format.formatter_of_buffer buf in
+                  Pprintast.toplevel_phrase fmt phrase;
+                  Format.pp_print_flush fmt ();
+                  Log.log (Printf.sprintf "PHASE: %s\n" (Buffer.contents buf))
+                in
                 Buffer.clear buffer;
+#if ocaml_version >= (4,2)
+                let phrase = 
+                  try
+                    match phrase with
+                    | Parsetree.Ptop_def pstr ->
+                      Parsetree.Ptop_def 
+                        (Pparse.apply_rewriters 
+                          ~restore:true
+                          ~tool_name:"ocaml" 
+                          Config.ast_impl_magic_number pstr)
+                    | _ -> phrase
+                  with _ -> phrase
+                in
+#endif
                 match try Ok(Toploop.execute_phrase true formatter phrase)
                       with exn -> Error(exn) with
                 | Ok(true) ->
@@ -72,10 +96,12 @@ let run_cell_lb execution_count lb =
                     Error(try get_error_info exn with _ -> "Execution error.") :: out_messages
             end
         in
+        Log.log (Printf.sprintf "phrases=%i\n" (List.length phrases));
         List.rev (run [] phrases)
     end
 
 let run_cell execution_count code = 
+    Log.log "run_cell_lb\n";
     run_cell_lb execution_count 
         (* little hack - make sure code ends with a '\n' otherwise the
          * error reporting isn't quite right *)
