@@ -24,6 +24,12 @@ This repository hosts the iocaml-kernel package.
 
 # Installation
 
+> **Note:** Currently you need to pin `cohttp` before installing iocaml:
+> ```
+$ opam pin add -y cohttp 0.20.2
+$ opam install iocaml
+```
+
 Installation requires opam and OCaml >= 4.01.0.  To use the OCaml server 
 
 ```
@@ -41,6 +47,12 @@ The kernel can also be used with the IPython/Jupyter server.
 
 * [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install) 
 * [Jupyter](https://github.com/andrewray/iocaml/wiki/jupyter)
+
+> **Note:** To use IOCaml with the latest IPython/Jupyter notebook, you'll need to start it with `--Session.key=''`:
+> ```
+jupyter notebook --Session.key=''
+```
+> This disables some security measures that iocaml doesn't yet support.
 
 ## Command line options
 
