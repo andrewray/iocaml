@@ -138,11 +138,25 @@ type connect_reply = {
 (* kernel information *)
 (*********************************************************************)
 
+type kernel_language_info = {
+  name : string;
+  version : string;
+  mimetype : string;
+  file_extension : string;
+  codemirror_mode : string;
+}
+
+type help_link = {
+  text : string;
+  url : string;
+}
+
 type kernel_info_reply = {
-    protocol_version : int list;
-    (* ipython_version : int * int * int * string; *)
-    language_version : int list;
-    language : string;
+    protocol_version : string;
+    implementation : string;
+    implementation_version : string;
+    language_info : kernel_language_info;
+    help_links : help_link list;
 }
 
 (*********************************************************************)

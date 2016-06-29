@@ -322,9 +322,18 @@ module Shell = struct
         send socket
             (make_header { msg with
                 content = Kernel_info_reply { 
-                    protocol_version = [ 3; 2 ];
-                    language_version = [ 4; 1; 0 ];
-                    language = "ocaml";
+                    protocol_version = "5.0";
+                    implementation = "iocaml";
+                    implementation_version = "0.4.6";
+                    language_info = {
+                        name = "ocaml";
+                        version = "4.1.0";
+                        mimetype = "text/plain";
+                        file_extension = "ml";
+                        codemirror_mode = "mllike";
+                    };
+                    help_links = []; (* TODO add some helpful links about
+                                        ocaml *)
                 }
             })
 
