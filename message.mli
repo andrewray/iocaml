@@ -31,7 +31,7 @@ type message_content =
     (* other *)
     | Status of status
     | Execute_input of execute_input
-    | Pyout of pyout
+    | Execute_result of execute_result
     | Stream of stream
     | Clear of clear_output
     | Display_data of display_data

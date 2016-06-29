@@ -298,9 +298,9 @@ module Shell = struct
             let status = Exec.run_cell !execution_count e.code in
             Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
 
-            let pyout message = 
+            let execute_result message = 
                 send_iopub_u (Iopub_send_message 
-                    (Pyout { 
+                    (Execute_result { 
                         po_execution_count = !execution_count;
                         po_data = `Assoc [ "text/html",
                             `String (Exec.html_of_status message !output_cell_max_height) ];
@@ -314,7 +314,7 @@ module Shell = struct
                     ename = None; evalue = None; traceback = None; payload = None;
                     er_user_expressions = None;
                 });
-            List.iter (fun m -> if not !suppress_compiler then pyout m) status;
+            List.iter (fun m -> if not !suppress_compiler then execute_result m) status;
             (* TODO send Status messages before/after handling *every* message *)
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
@@ -387,7 +387,7 @@ module Shell = struct
             | Shutdown_reply(_) | Execute_reply(_)
             | Inspect_reply(_) | Complete_reply(_)
             | History_reply(_) | Status(_) | Execute_input(_)
-            | Pyout(_) | Stream(_) | Display_data(_) 
+            | Execute_result(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
 
             | Comm_open -> ()

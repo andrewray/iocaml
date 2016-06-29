@@ -32,7 +32,7 @@ type message_content =
     (* others *)
     | Status of status
     | Execute_input of execute_input
-    | Pyout of pyout
+    | Execute_result of execute_result
     | Stream of stream
     | Clear of clear_output
     | Display_data of display_data
@@ -59,7 +59,7 @@ let content_of_json hdr c =
 
     | "status" -> Status(status_of_string c)
     | "execute_input" -> Execute_input(execute_input_of_string c)
-    | "pyout" -> Pyout(pyout_of_string c)
+    | "execute_result" -> Execute_result(execute_result_of_string c)
     | "stream" -> Stream(stream_of_string c)
     | "display_data" -> Display_data(display_data_of_string c)
     | "clear_output" -> Clear(clear_output_of_string c)
@@ -87,7 +87,7 @@ let json_of_content = function
 
     | Status(x) -> string_of_status x
     | Execute_input(x) -> string_of_execute_input x
-    | Pyout(x) -> string_of_pyout x
+    | Execute_result(x) -> string_of_execute_result x
     | Stream(x) -> string_of_stream x
     | Clear(x) -> string_of_clear_output x
     | Display_data(x) -> string_of_display_data x
@@ -113,7 +113,7 @@ let msg_type_of_content = function
 
     | Status(_) -> "status"
     | Execute_input(_) -> "execute_input"
-    | Pyout(_) -> "pyout"
+    | Execute_result(_) -> "execute_result"
     | Stream(_) -> "stream"
     | Clear(_) -> "clear_output"
     | Display_data(_) -> "display_data"

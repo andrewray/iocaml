@@ -196,7 +196,7 @@ type execute_input = {
 (*********************************************************************)
 (*********************************************************************)
 
-type pyout = {
+type execute_result = {
     po_execution_count <json name="execution_count"> : int;
     po_data <json name="data"> : dyn;
     po_metadata <json name="metadata"> : dyn;
