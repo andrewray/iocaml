@@ -67,8 +67,9 @@ type execute_reply = {
 (* object info *)
 (*********************************************************************)
 
-type object_info_request = {
-    oname : string;
+type inspect_request = {
+    code : string;
+    cursor_pos : int;
     detail_level : int;
 }
 
@@ -79,25 +80,11 @@ type arg_spec = {
     defaults : string list;
 }
 
-type object_info_reply = {
-    name : string;
-    found : bool;
-    ismagic : bool;
-    isalias : bool;
-    namespace : string;
-    type_name : string;
-    string_form : string;
-    base_class : string;
-    length : int;
-    oi_file <json name="file"> : string;
-    definition : string;
-    argspec : arg_spec;
-    init_definition : string;
-    docstring : string;
-    class_docstring : string;
-    call_def : string;
-    call_docstring : string;
-    oi_source <json name="source"> : string;
+type inspect_reply = {
+    status: string;
+    found: bool;
+    data: dyn;
+    metadata: dyn;
 }
 
 (*********************************************************************)
@@ -105,13 +92,14 @@ type object_info_reply = {
 (*********************************************************************)
 
 type complete_request = {
-    line <json name="code"> : string;
+    code : string;
     cursor_pos : int;
 }
 
 type complete_reply = {
     matches : string list;
-    matched_text : string;
+    cursor_start : int;
+    cursor_end : int;
     cr_status <json name="status"> : string;
 }
 

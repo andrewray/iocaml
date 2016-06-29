@@ -17,7 +17,7 @@ type message_content =
     | Kernel_info_request
     | Shutdown_request of shutdown
     | Execute_request of execute_request
-    | Object_info_request of object_info_request
+    | Inspect_Request of inspect_request
     | Complete_request of complete_request
     | History_request of history_request
     (* messages sent to front end *)
@@ -25,7 +25,7 @@ type message_content =
     | Kernel_info_reply of kernel_info_reply
     | Shutdown_reply of shutdown
     | Execute_reply of execute_reply
-    | Object_info_reply of object_info_reply
+    | Inspect_reply of inspect_reply
     | Complete_reply of complete_reply
     | History_reply of history_reply
     (* other *)

@@ -344,11 +344,11 @@ module Shell = struct
 #endif
             ()
 
-    let object_info_request index socket msg x = 
+    let inspect_request index socket msg x =
 #if has_ocp=1
         if !object_info then
             let reply = Completion.info index x in
-            send_h socket msg (Object_info_reply reply)
+            send_h socket msg (Inspect_reply reply)
         else
 #endif
             ()
@@ -367,7 +367,7 @@ module Shell = struct
             | Kernel_info_request -> kernel_info_request sockets.shell msg
             | Execute_request(x) -> execute_request sockets send_iopub msg x 
             | Connect_request -> connect_request sockets.shell msg 
-            | Object_info_request(x) -> object_info_request index sockets.shell msg x
+            | Inspect_Request(x) -> inspect_request index sockets.shell msg x
             | Complete_request(x) -> complete_request index sockets.shell msg x
             | History_request(x) -> history_request sockets.shell msg x
             | Shutdown_request(x) -> shutdown_request sockets.shell msg x
@@ -375,7 +375,7 @@ module Shell = struct
             (* messages we should not be getting *)
             | Connect_reply(_) | Kernel_info_reply(_)
             | Shutdown_reply(_) | Execute_reply(_)
-            | Object_info_reply(_) | Complete_reply(_)
+            | Inspect_reply(_) | Complete_reply(_)
             | History_reply(_) | Status(_) | Pyin(_) 
             | Pyout(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()

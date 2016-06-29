@@ -18,7 +18,7 @@ type message_content =
     | Kernel_info_request
     | Shutdown_request of shutdown
     | Execute_request of execute_request
-    | Object_info_request of object_info_request
+    | Inspect_Request of inspect_request
     | Complete_request of complete_request
     | History_request of history_request
     (* messages sent to front end *)
@@ -26,7 +26,7 @@ type message_content =
     | Kernel_info_reply of kernel_info_reply
     | Shutdown_reply of shutdown
     | Execute_reply of execute_reply
-    | Object_info_reply of object_info_reply
+    | Inspect_reply of inspect_reply
     | Complete_reply of complete_reply
     | History_reply of history_reply
     (* others *)
@@ -45,7 +45,7 @@ let content_of_json hdr c =
     | "kernel_info_request" -> Kernel_info_request
     | "shutdown_request" -> Shutdown_request(shutdown_of_string c)
     | "execute_request" -> Execute_request(execute_request_of_string c)
-    | "object_info_request" -> Object_info_request(object_info_request_of_string c)
+    | "inspect_request" -> Inspect_Request(inspect_request_of_string c)
     | "complete_request" -> Complete_request(complete_request_of_string c)
     | "history_request" -> History_request(history_request_of_string c)
 
@@ -53,7 +53,7 @@ let content_of_json hdr c =
     | "kernel_info_reply" -> Kernel_info_reply(kernel_info_reply_of_string c)
     | "shutdown_reply" -> Shutdown_reply(shutdown_of_string c)
     | "execute_reply" -> Execute_reply(execute_reply_of_string c)
-    | "object_info_reply" -> Object_info_reply(object_info_reply_of_string c)
+    | "inspect_reply" -> Inspect_reply(inspect_reply_of_string c)
     | "complete_reply" -> Complete_reply(complete_reply_of_string c)
     | "history_reply" -> History_reply(history_reply_of_string c)
 
@@ -73,7 +73,7 @@ let json_of_content = function
     | Kernel_info_request -> "{}"
     | Shutdown_request(x) -> string_of_shutdown x
     | Execute_request(x) -> string_of_execute_request x
-    | Object_info_request(x) -> string_of_object_info_request x
+    | Inspect_Request(x) -> string_of_inspect_request x
     | Complete_request(x) -> string_of_complete_request x
     | History_request(x) -> string_of_history_request x
 
@@ -81,7 +81,7 @@ let json_of_content = function
     | Kernel_info_reply(x) -> string_of_kernel_info_reply x
     | Shutdown_reply(x) -> string_of_shutdown x
     | Execute_reply(x) -> string_of_execute_reply x
-    | Object_info_reply(x) -> string_of_object_info_reply x
+    | Inspect_reply(x) -> string_of_inspect_reply x
     | Complete_reply(x) -> string_of_complete_reply x
     | History_reply(x) -> string_of_history_reply x
 
@@ -99,7 +99,7 @@ let msg_type_of_content = function
     | Kernel_info_request -> "kernel_info_request"
     | Shutdown_request(_) -> "shutdown_request"
     | Execute_request(_) -> "execute_request"
-    | Object_info_request(_) -> "object_info_request"
+    | Inspect_Request(_) -> "inspect_request"
     | Complete_request(_) -> "complete_request"
     | History_request(_) -> "history_request"
 
@@ -107,7 +107,7 @@ let msg_type_of_content = function
     | Kernel_info_reply(_) -> "kernel_info_reply"
     | Shutdown_reply(_) -> "shutdown_reply"
     | Execute_reply(_) -> "execute_reply"
-    | Object_info_reply(_) -> "object_info_reply"
+    | Inspect_reply(_) -> "inspect_reply"
     | Complete_reply(_) -> "complete_reply"
     | History_reply(_) -> "history_reply"
 
