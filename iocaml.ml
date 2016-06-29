@@ -182,8 +182,8 @@ module Shell = struct
                 let r_len = Unix.read std.o_unix buffer 0 b_len in
                 match !msg, r_len, !suppress with
                 | Some(msg), x, false when x <> 0 ->
-                    let st_data = String.sub buffer 0 r_len in
-                    send_h socket msg (Stream { st_name=std.o_name; st_data; });
+                    let st_text = String.sub buffer 0 r_len in
+                    send_h socket msg (Stream { st_name=std.o_name; st_text; });
                     false
                 | _ -> false
         in
@@ -289,7 +289,7 @@ module Shell = struct
             send_iopub_u (Iopub_set_current msg);
             send_iopub_u (Iopub_send_message (Status { execution_state = "busy" }));
             send_iopub_u (Iopub_send_message
-                    (Pyin {
+                    (Execute_input {
                         pi_code = e.code;
                         pi_execution_count = !execution_count;
                     }));
@@ -297,12 +297,12 @@ module Shell = struct
             (* eval code *)
             let status = Exec.run_cell !execution_count e.code in
             Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
-    
+
             let pyout message = 
                 send_iopub_u (Iopub_send_message 
                     (Pyout { 
                         po_execution_count = !execution_count;
-                        po_data = `Assoc [ "text/html", 
+                        po_data = `Assoc [ "text/html",
                             `String (Exec.html_of_status message !output_cell_max_height) ];
                         po_metadata = `Assoc []; }))
             in
@@ -315,6 +315,7 @@ module Shell = struct
                     er_user_expressions = None;
                 });
             List.iter (fun m -> if not !suppress_compiler then pyout m) status;
+            (* TODO send Status messages before/after handling *every* message *)
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
@@ -385,11 +386,12 @@ module Shell = struct
             | Connect_reply(_) | Kernel_info_reply(_)
             | Shutdown_reply(_) | Execute_reply(_)
             | Inspect_reply(_) | Complete_reply(_)
-            | History_reply(_) | Status(_) | Pyin(_) 
+            | History_reply(_) | Status(_) | Execute_input(_)
             | Pyout(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
 
             | Comm_open -> ()
+
         in
 
         let rec run () = 
@@ -492,8 +494,8 @@ let send_mime ?(context=None) ?(base64=false) mime_type =
     flush mime;
     ignore (send_iopub Shell.(Iopub_send_mime(context,mime_type,base64)))
 
-let send_clear ?(context=None) ?(wait=true) ?(stdout=true) ?(stderr=true) ?(other=true) () = 
-    send_message ~context Shell.(Message.Clear(Ipython_json_t.({wait;stdout;stderr;other})))
+let send_clear ?(context=None) ?(wait=true) () =
+    send_message ~context Shell.(Message.Clear(Ipython_json_t.({wait})))
 
 let cell_context () = 
         match send_iopub Shell.Iopub_get_current with

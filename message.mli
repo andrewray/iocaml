@@ -30,7 +30,7 @@ type message_content =
     | History_reply of history_reply
     (* other *)
     | Status of status
-    | Pyin of pyin
+    | Execute_input of execute_input
     | Pyout of pyout
     | Stream of stream
     | Clear of clear_output

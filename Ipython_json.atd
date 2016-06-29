@@ -25,6 +25,7 @@ type connection_info = {
 
 (* header (and parent) information in ZMQ messages *)
 type header_info = {
+    ~version: string;
     ~date : string;
     ~username : string;
     ~session : string;
@@ -187,7 +188,7 @@ type display_data = {
 (*********************************************************************)
 (*********************************************************************)
 
-type pyin = {
+type execute_input = {
     pi_code <json name="code"> : string;
     pi_execution_count <json name="execution_count"> : int;
 }
@@ -206,7 +207,7 @@ type pyout = {
 
 type stream = {
     st_name <json name="name"> : string;
-    st_data <json name="data"> : string;
+    st_text <json name="text"> : string;
 }
 
 (*********************************************************************)
@@ -214,9 +215,6 @@ type stream = {
 
 type clear_output = {
     wait : bool;
-    stdout : bool;
-    stderr : bool;
-    other : bool;
 }
 
 
