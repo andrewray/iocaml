@@ -38,8 +38,10 @@ type message_content =
     | Display_data of display_data
     (* custom messages *)
     | Comm_open
+    | Error of string
 
 let content_of_json hdr c =
+  try
     match hdr.msg_type with
     | "connect_request" -> Connect_request
     | "kernel_info_request" -> Kernel_info_request
@@ -66,7 +68,12 @@ let content_of_json hdr c =
 
     | "comm_open" -> Comm_open
 
-    | _ -> failwith ("content_of_json: " ^ hdr.msg_type)
+    | _ -> Error("Unknown message type: " ^ hdr.msg_type)
+  with
+  | Ag_oj_run.Error(message) ->
+    Error("Unable to parse '" ^ hdr.msg_type ^ "': " ^
+          message ^ "\n" ^ c)
+  | _ -> Error("Exception while parsing '" ^ hdr.msg_type ^ "': " ^ c)
 
 let json_of_content = function
     | Connect_request -> "{}"
@@ -93,6 +100,7 @@ let json_of_content = function
     | Display_data(x) -> string_of_display_data x
 
     | Comm_open -> "{}"
+    | Error(_) -> "{}"
 
 let msg_type_of_content = function
     | Connect_request -> "connect_request"
@@ -119,6 +127,7 @@ let msg_type_of_content = function
     | Display_data(_) -> "display_data"
 
     | Comm_open -> "comm_open"
+    | Error(x) -> x
 
 type message =
     {

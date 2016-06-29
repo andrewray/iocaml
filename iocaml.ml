@@ -372,6 +372,8 @@ module Shell = struct
             | History_request(x) -> history_request sockets.shell msg x
             | Shutdown_request(x) -> shutdown_request sockets.shell msg x
 
+            | Error(msg_type) -> Log.log ("Error receiving message: " ^ msg_type)
+
             (* messages we should not be getting *)
             | Connect_reply(_) | Kernel_info_reply(_)
             | Shutdown_reply(_) | Execute_reply(_)
