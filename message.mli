@@ -37,6 +37,7 @@ type message_content =
     | Display_data of display_data
     (* custom messages *)
     | Comm_open
+    | Error of string
 
 val content_of_json : header_info -> string -> message_content
 val json_of_content : message_content -> string
