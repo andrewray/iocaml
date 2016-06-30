@@ -42,6 +42,12 @@ The kernel can also be used with the IPython/Jupyter server.
 * [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install) 
 * [Jupyter](https://github.com/andrewray/iocaml/wiki/jupyter)
 
+**Note:** To use IOCaml with the latest IPython/Jupyter notebook, you'll need to start it with `--Session.key=''`:
+```
+jupyter notebook --Session.key=''
+```
+This disables some security measures that iocaml doesn't yet support.
+
 ## Command line options
 
 The following options may be given to the IOCaml-kernel (via
