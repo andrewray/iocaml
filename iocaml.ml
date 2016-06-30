@@ -182,8 +182,8 @@ module Shell = struct
                 let r_len = Unix.read std.o_unix buffer 0 b_len in
                 match !msg, r_len, !suppress with
                 | Some(msg), x, false when x <> 0 ->
-                    let st_data = String.sub buffer 0 r_len in
-                    send_h socket msg (Stream { st_name=std.o_name; st_data; });
+                    let st_text = String.sub buffer 0 r_len in
+                    send_h socket msg (Stream { st_name=std.o_name; st_text; });
                     false
                 | _ -> false
         in
@@ -289,7 +289,7 @@ module Shell = struct
             send_iopub_u (Iopub_set_current msg);
             send_iopub_u (Iopub_send_message (Status { execution_state = "busy" }));
             send_iopub_u (Iopub_send_message
-                    (Pyin {
+                    (Execute_input {
                         pi_code = e.code;
                         pi_execution_count = !execution_count;
                     }));
@@ -297,12 +297,12 @@ module Shell = struct
             (* eval code *)
             let status = Exec.run_cell !execution_count e.code in
             Pervasives.flush stdout; Pervasives.flush stderr; send_iopub_u Iopub_flush;
-    
-            let pyout message = 
+
+            let execute_result message = 
                 send_iopub_u (Iopub_send_message 
-                    (Pyout { 
+                    (Execute_result { 
                         po_execution_count = !execution_count;
-                        po_data = `Assoc [ "text/html", 
+                        po_data = `Assoc [ "text/html",
                             `String (Exec.html_of_status message !output_cell_max_height) ];
                         po_metadata = `Assoc []; }))
             in
@@ -314,7 +314,8 @@ module Shell = struct
                     ename = None; evalue = None; traceback = None; payload = None;
                     er_user_expressions = None;
                 });
-            List.iter (fun m -> if not !suppress_compiler then pyout m) status;
+            List.iter (fun m -> if not !suppress_compiler then execute_result m) status;
+            (* TODO send Status messages before/after handling *every* message *)
             send_iopub_u (Iopub_send_message (Status { execution_state = "idle" }));
         )
 
@@ -322,9 +323,18 @@ module Shell = struct
         send socket
             (make_header { msg with
                 content = Kernel_info_reply { 
-                    protocol_version = [ 3; 2 ];
-                    language_version = [ 4; 1; 0 ];
-                    language = "ocaml";
+                    protocol_version = "5.0";
+                    implementation = "iocaml";
+                    implementation_version = "0.4.6";
+                    language_info = {
+                        name = "ocaml";
+                        version = "4.1.0";
+                        mimetype = "text/plain";
+                        file_extension = "ml";
+                        codemirror_mode = "mllike";
+                    };
+                    help_links = []; (* TODO add some helpful links about
+                                        ocaml *)
                 }
             })
 
@@ -344,11 +354,11 @@ module Shell = struct
 #endif
             ()
 
-    let object_info_request index socket msg x = 
+    let inspect_request index socket msg x =
 #if has_ocp=1
         if !object_info then
             let reply = Completion.info index x in
-            send_h socket msg (Object_info_reply reply)
+            send_h socket msg (Inspect_reply reply)
         else
 #endif
             ()
@@ -367,7 +377,7 @@ module Shell = struct
             | Kernel_info_request -> kernel_info_request sockets.shell msg
             | Execute_request(x) -> execute_request sockets send_iopub msg x 
             | Connect_request -> connect_request sockets.shell msg 
-            | Object_info_request(x) -> object_info_request index sockets.shell msg x
+            | Inspect_Request(x) -> inspect_request index sockets.shell msg x
             | Complete_request(x) -> complete_request index sockets.shell msg x
             | History_request(x) -> history_request sockets.shell msg x
             | Shutdown_request(x) -> shutdown_request sockets.shell msg x
@@ -375,12 +385,13 @@ module Shell = struct
             (* messages we should not be getting *)
             | Connect_reply(_) | Kernel_info_reply(_)
             | Shutdown_reply(_) | Execute_reply(_)
-            | Object_info_reply(_) | Complete_reply(_)
-            | History_reply(_) | Status(_) | Pyin(_) 
-            | Pyout(_) | Stream(_) | Display_data(_) 
+            | Inspect_reply(_) | Complete_reply(_)
+            | History_reply(_) | Status(_) | Execute_input(_)
+            | Execute_result(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
 
             | Comm_open -> ()
+
         in
 
         let rec run () = 
@@ -483,8 +494,8 @@ let send_mime ?(context=None) ?(base64=false) mime_type =
     flush mime;
     ignore (send_iopub Shell.(Iopub_send_mime(context,mime_type,base64)))
 
-let send_clear ?(context=None) ?(wait=true) ?(stdout=true) ?(stderr=true) ?(other=true) () = 
-    send_message ~context Shell.(Message.Clear(Ipython_json_t.({wait;stdout;stderr;other})))
+let send_clear ?(context=None) ?(wait=true) () =
+    send_message ~context Shell.(Message.Clear(Ipython_json_t.({wait})))
 
 let cell_context () = 
         match send_iopub Shell.Iopub_get_current with

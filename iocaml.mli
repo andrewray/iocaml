@@ -95,7 +95,7 @@ val send_mime : ?context:cell_context -> ?base64:bool -> string -> unit
 
 (** sends message to clear cell output area (requires IPython 2.0+) *)
 val send_clear : ?context:cell_context -> 
-    ?wait:bool -> ?stdout:bool -> ?stderr:bool -> ?other:bool -> unit -> unit
+    ?wait:bool -> unit -> unit
 
 (* get current cells context *)
 val cell_context : unit -> cell_context

@@ -25,6 +25,7 @@ type connection_info = {
 
 (* header (and parent) information in ZMQ messages *)
 type header_info = {
+    ~version: string;
     ~date : string;
     ~username : string;
     ~session : string;
@@ -67,8 +68,9 @@ type execute_reply = {
 (* object info *)
 (*********************************************************************)
 
-type object_info_request = {
-    oname : string;
+type inspect_request = {
+    code : string;
+    cursor_pos : int;
     detail_level : int;
 }
 
@@ -79,25 +81,11 @@ type arg_spec = {
     defaults : string list;
 }
 
-type object_info_reply = {
-    name : string;
-    found : bool;
-    ismagic : bool;
-    isalias : bool;
-    namespace : string;
-    type_name : string;
-    string_form : string;
-    base_class : string;
-    length : int;
-    oi_file <json name="file"> : string;
-    definition : string;
-    argspec : arg_spec;
-    init_definition : string;
-    docstring : string;
-    class_docstring : string;
-    call_def : string;
-    call_docstring : string;
-    oi_source <json name="source"> : string;
+type inspect_reply = {
+    status: string;
+    found: bool;
+    data: dyn;
+    metadata: dyn;
 }
 
 (*********************************************************************)
@@ -105,13 +93,14 @@ type object_info_reply = {
 (*********************************************************************)
 
 type complete_request = {
-    line <json name="code"> : string;
+    code : string;
     cursor_pos : int;
 }
 
 type complete_reply = {
     matches : string list;
-    matched_text : string;
+    cursor_start : int;
+    cursor_end : int;
     cr_status <json name="status"> : string;
 }
 
@@ -150,11 +139,25 @@ type connect_reply = {
 (* kernel information *)
 (*********************************************************************)
 
+type kernel_language_info = {
+  name : string;
+  version : string;
+  mimetype : string;
+  file_extension : string;
+  codemirror_mode : string;
+}
+
+type help_link = {
+  text : string;
+  url : string;
+}
+
 type kernel_info_reply = {
-    protocol_version : int list;
-    (* ipython_version : int * int * int * string; *)
-    language_version : int list;
-    language : string;
+    protocol_version : string;
+    implementation : string;
+    implementation_version : string;
+    language_info : kernel_language_info;
+    help_links : help_link list;
 }
 
 (*********************************************************************)
@@ -185,7 +188,7 @@ type display_data = {
 (*********************************************************************)
 (*********************************************************************)
 
-type pyin = {
+type execute_input = {
     pi_code <json name="code"> : string;
     pi_execution_count <json name="execution_count"> : int;
 }
@@ -193,7 +196,7 @@ type pyin = {
 (*********************************************************************)
 (*********************************************************************)
 
-type pyout = {
+type execute_result = {
     po_execution_count <json name="execution_count"> : int;
     po_data <json name="data"> : dyn;
     po_metadata <json name="metadata"> : dyn;
@@ -204,7 +207,7 @@ type pyout = {
 
 type stream = {
     st_name <json name="name"> : string;
-    st_data <json name="data"> : string;
+    st_text <json name="text"> : string;
 }
 
 (*********************************************************************)
@@ -212,9 +215,6 @@ type stream = {
 
 type clear_output = {
     wait : bool;
-    stdout : bool;
-    stderr : bool;
-    other : bool;
 }
 
 
