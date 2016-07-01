@@ -35,22 +35,22 @@ lib: json stub
 OCP_INDEX_INC=`ocamlfind query ocp-index.lib -predicates byte -format "%d"`
 OCP_INDEX_ARCHIVE=`ocamlfind query ocp-index.lib -predicates byte -format "%a"`
 
+TOP_BASE = message.ml sockets.ml exec.ml iocaml.ml
+
 HAS_OCP = $(shell if ocamlfind query ocp-index.lib >/dev/null 2>&1; then echo 1; else echo 0; fi)
 ifeq ($(HAS_OCP),1)
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs
-TOP_SRC = \
-	message.mli sockets.mli completion.mli exec.mli iocaml.mli \
-	message.ml  sockets.ml  completion.ml  exec.ml  iocaml.ml 
-TOP_OBJ =  message.cmo sockets.cmo completion.cmo exec.cmo iocaml.cmo 
+TOP_ML = completion.ml $(TOP_BASE)
 TOP_OCP = -I $(OCP_INDEX_INC) $(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) 
 else
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,compiler-libs
-TOP_SRC = \
-	message.mli sockets.mli exec.mli iocaml.mli \
-	message.ml  sockets.ml  exec.ml  iocaml.ml 
-TOP_OBJ =  message.cmo sockets.cmo exec.cmo iocaml.cmo 
+TOP_ML = $(TOP_BASE)
 TOP_OCP = 
 endif
+
+TOP_MLI = $(patsubst %.ml,%.mli,$(TOP_ML))
+TOP_OBJ = $(patsubst %.ml,%.cmo,$(TOP_ML))
+TOP_SRC = $(TOP_ML) $(TOP_MLI)
 
 top: lib
 	@echo "\t$(MAGENTA)[[ build iocaml.top ]]$(PLAIN)"
