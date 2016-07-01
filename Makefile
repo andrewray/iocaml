@@ -40,7 +40,7 @@ TOP_BASE = message.ml sockets.ml exec.ml iocaml.ml
 HAS_OCP = $(shell if ocamlfind query ocp-index.lib >/dev/null 2>&1; then echo 1; else echo 0; fi)
 ifeq ($(HAS_OCP),1)
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs
-TOP_ML = completion.ml $(TOP_BASE)
+TOP_ML = global_names.ml completion.ml $(TOP_BASE)
 TOP_OCP = -I $(OCP_INDEX_INC) $(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) 
 else
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,compiler-libs
@@ -53,6 +53,7 @@ TOP_OBJ = $(patsubst %.ml,%.cmo,$(TOP_ML))
 TOP_SRC = $(TOP_MLI) $(TOP_ML)
 
 top: lib
+	echo $(TOP_SRC)
 	@echo "\t$(MAGENTA)[[ build iocaml.top ]]$(PLAIN)"
 	@ocamlfind c -c -g -thread \
 		-syntax camlp4o -package optcomp -ppopt "-let has_ocp=$(HAS_OCP)" \
@@ -79,6 +80,6 @@ reinstall:
 	@$(MAKE) install
 
 clean:
-	@rm *.cmi *.cmo *.cma *.so *.a *.o iocaml.top
+	@rm -f *.cmi *.cmo *.cma *.so *.a *.o iocaml.top
 
 

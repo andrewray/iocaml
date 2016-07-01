@@ -60,15 +60,34 @@ let find_token_back line end_pos =
     with _ -> 
         "exception"
 
+let is_prefix prefix full =
+    let lp = String.length prefix in
+    if lp > String.length full then
+        false
+    else
+        let rec loop idx =
+            if idx >= lp then true else
+            if full.[idx] != prefix.[idx] then false
+            else loop (idx + 1)
+        in
+        loop 0
+
 let complete t req = 
     let token = find_token_back req.code req.cursor_pos in
     let matches = 
         try List.map LibIndex.Print.path (LibIndex.complete t token)
         with _ -> []
     in
+    let globals = Global_names.get_global_names() in
+    let global_matches =
+        List.filter
+            (fun name -> (is_prefix token name) &&
+                          (not (List.mem name matches)))
+            globals
+    in
     Log.log ("complete_req: match '" ^ token ^ "'\n");
     {
-        matches = matches;
+        matches = List.concat [global_matches; matches];
         cursor_start = req.cursor_pos - String.length token;
         cursor_end = req.cursor_pos;
         cr_status = "ok";
