@@ -50,7 +50,7 @@ endif
 
 TOP_MLI = $(patsubst %.ml,%.mli,$(TOP_ML))
 TOP_OBJ = $(patsubst %.ml,%.cmo,$(TOP_ML))
-TOP_SRC = $(TOP_ML) $(TOP_MLI)
+TOP_SRC = $(TOP_MLI) $(TOP_ML)
 
 top: lib
 	@echo "\t$(MAGENTA)[[ build iocaml.top ]]$(PLAIN)"
