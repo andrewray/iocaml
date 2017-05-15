@@ -25,7 +25,7 @@ let get_error_loc = function
 let buffer = Buffer.create 100 
 let formatter = Format.formatter_of_buffer buffer 
 
-let run_cell_lb execution_count lb = 
+let run_cell_lb execution_count lb =
 
     let get_error_info exn = 
         Errors.report_error formatter exn;

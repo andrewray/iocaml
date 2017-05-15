@@ -25,31 +25,12 @@ let pread_line cmd =
   with
   | _ -> []
 
-let empty_info = 
+let empty_reply =
     {
-        name = "";
+        status = "ok";
         found = false;
-        ismagic = false;
-        isalias = false;
-        namespace = "";
-        type_name = "";
-        string_form = "";
-        base_class = "";
-        length = 0;
-        oi_file = "";
-        definition = "";
-        argspec = {
-            args = [];
-            varargs = "";
-            varkw = "";
-            defaults = [];
-        };
-        init_definition = "";
-        docstring = "";
-        class_docstring = "";
-        call_def = "";
-        call_docstring = "";
-        oi_source = "None";
+        data = `Assoc [];
+        metadata = `Assoc [];
     }
 
 (* XXX we should probably allow user directories *)
@@ -80,7 +61,7 @@ let find_token_back line end_pos =
         "exception"
 
 let complete t req = 
-    let token = find_token_back req.line req.cursor_pos in
+    let token = find_token_back req.code req.cursor_pos in
     let matches = 
         try List.map LibIndex.Print.path (LibIndex.complete t token)
         with _ -> []
@@ -88,29 +69,33 @@ let complete t req =
     Log.log ("complete_req: match '" ^ token ^ "'\n");
     {
         matches = matches;
-        matched_text = token;
+        cursor_start = req.cursor_pos - String.length token;
+        cursor_end = req.cursor_pos;
         cr_status = "ok";
     }
 
-let info t req = 
-    try 
-        let x = List.hd (LibIndex.complete t req.oname) in
-        (*let name = LibIndex.Print.name x in*)
-        let path = LibIndex.Print.path x in
-        let kind = LibIndex.Print.kind x in
-        let ty = LibIndex.Print.ty x in
-        let doc = LibIndex.Print.doc x in
-        let loc = LibIndex.Print.loc x in
-        {
-            empty_info with
-                name = path;
-                found = true;
-                call_def = ty;
-                call_docstring = 
-                    (if kind <> "" then kind ^ " : " ^ path ^ "\n" else path ^ "\n") ^
-                    (if loc <> "<no location information>" then loc ^ "\n" else "") ^ 
-                    (if doc <> "" then "\n\n" ^ doc else "");
-        }
-    with _ -> empty_info
+let docstring_from_completion completion =
+    let path = LibIndex.Print.path completion in
+    let kind = LibIndex.Print.kind completion in
+    let doc = LibIndex.Print.doc completion in
+    let loc = LibIndex.Print.loc completion in
+    (if kind <> "" then kind ^ " : " ^ path ^ "\n" else path ^ "\n") ^
+    (if loc <> "<no location information>" then loc ^ "\n" else "") ^
+    (if doc <> "" then "\n\n" ^ doc else "")
 
+let info_from_name t name =
+    match LibIndex.complete t name with
+    | [] -> empty_reply
+    | completion::_ ->
+        {
+            empty_reply with
+                found = true;
+                data = `Assoc [
+                    "text/plain",
+                    `String (docstring_from_completion completion);
+                ];
+        }
+
+let info t (req: Ipython_json_t.inspect_request) =
+    info_from_name t (find_token_back req.code req.cursor_pos)
 
