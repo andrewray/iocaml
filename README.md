@@ -37,6 +37,20 @@ $ opam install iocaml-kernel
 $ opam install iocamljs-kernel
 ```
 
+# Running
+
+Simply run iocaml from the command-line. This should automatically start the iocaml web interface and open a browser window 
+
+```
+$ iocaml
+```
+
+When opening a new notebook,an iocaml-kernel process should be automatically started. For example enter `let a = 12 + 30`, hit ctrl-enter, and you should see the response `val a : int = 42`. 
+
+Note that starting up the kernel might take a while the first time, during which your input prompt will look like `In [*]`. 
+
+## Jupyter
+
 The kernel can also be used with the IPython/Jupyter server.
 
 * [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install) 
