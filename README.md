@@ -5,12 +5,12 @@
 IOCaml
 ======
 
-IOCaml is an OCaml kernel for the 
-[IPython notebook](http://ipython.org/notebook.html). 
-This provides a REPL within a web browser with a nice user interface 
-including markdown based comments/documentation, mathjax formula and 
-the possibility of generating all manner of HTML based output media 
-from your code.  
+IOCaml is an OCaml kernel for the
+[IPython notebook](http://ipython.org/notebook.html).
+This provides a REPL within a web browser with a nice user interface
+including markdown based comments/documentation, mathjax formula and
+the possibility of generating all manner of HTML based output media
+from your code.
 
 See also
 
@@ -24,7 +24,7 @@ This repository hosts the iocaml-kernel package.
 
 # Installation
 
-Installation requires opam and OCaml >= 4.01.0.  To use the OCaml server 
+Installation requires opam and OCaml >= 4.01.0.  To use the OCaml server
 
 ```
 $ opam install iocaml
@@ -39,7 +39,7 @@ $ opam install iocamljs-kernel
 
 The kernel can also be used with the IPython/Jupyter server.
 
-* [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install) 
+* [IPython](https://github.com/andrewray/iocaml/wiki/ipython_install)
 * [Jupyter](https://github.com/andrewray/iocaml/wiki/jupyter)
 
 **Note:** To use IOCaml with the latest IPython/Jupyter notebook, you'll need to start it with `--Session.key=''`:
@@ -61,4 +61,30 @@ the IPython profile config) or IOCaml-server.
 The following option is for use with IPython
 
 * ``` -connection-file <filename> ``` connection file name
+
+## Building
+
+OPAM Requirements:
+- camlp4
+- ctypes
+- ctypes-foreign
+- optcomp
+- atdgen
+- uuidm
+
+Other requirements:
+- zmq (`brew install zeromq`)
+
+`make`
+
+### Troubleshooting
+
+If you get complaints about missing `zmq.h` on macos, try adding this to your
+bash_profile (or executing in your shell):
+
+```
+# for gmp to be found by cc (hence opam)
+export C_INCLUDE_PATH=$C_INCLUDE_PATH:/usr/local/include
+export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+```
 
