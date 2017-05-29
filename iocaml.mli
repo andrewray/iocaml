@@ -53,12 +53,7 @@ val suppress_compiler : bool -> unit
 (** suppress all output (except mime messages) *)
 val suppress_all : bool -> unit
 
-(** ocp-index *)
-#if has_ocp = 1
-val index : LibIndex.t
-#else
-val index : unit
-#endif
+val index : Iocaml_complete.index
 
 type cell_context
 
