@@ -1,0 +1,29 @@
+opam-version: "1.2"
+maintainer: "Andy Ray <andy.ray@ujamjar.com>"
+authors: "Andy Ray <andy.ray@ujamjar.com>"
+homepage: "https://github.com/andrewray/iocaml"
+dev-repo: "git+https://github.com/andrewray/iocaml.git"
+bug-reports: "https://github.com/andrewray/iocaml/issues"
+depends: [
+  "jbuilder" {build}
+  "cppo" {build}
+  "conf-zmq" {build}
+  "uuidm"
+  "yojson"
+  "atdgen"
+  "ctypes" {>= "0.3"}
+  "ctypes-foreign"
+  "base-unix"
+  "lwt" {>= "2.4"}
+]
+depopts: ["ocp-index"]
+conflicts: [
+  "ocp-index" {< "1.0.1"}
+]
+
+build: [
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["jbuilder" "runtest" "-p" name "-j" jobs]
+]
