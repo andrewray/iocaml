@@ -5,7 +5,7 @@ homepage: "https://github.com/andrewray/iocaml"
 dev-repo: "git+https://github.com/andrewray/iocaml.git"
 bug-reports: "https://github.com/andrewray/iocaml/issues"
 depends: [
-  "jbuilder" {build}
+  "jbuilder" {build & >= "1.0+beta10"}
   "cppo" {build}
   "conf-zmq" {build}
   "uuidm"

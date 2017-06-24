@@ -16,7 +16,7 @@
   (wrapped false)
   
   (preprocess
-   (per_file
+   (per_module
     ((action (run ${bin:cppo} -V OCAML:${ocaml_version} ${<})) (exec))))
   (libraries
    (atdgen
