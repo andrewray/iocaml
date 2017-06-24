@@ -1,0 +1,29 @@
+(jbuild_version 1)
+
+(rule
+ ((targets (Ipython_json_t.ml Ipython_json_t.mli))
+  (deps    (Ipython_json.atd))
+  (action  (run atdgen -t ${<}))))
+
+(rule
+ ((targets (Ipython_json_j.ml Ipython_json_j.mli))
+  (deps    (Ipython_json.atd))
+  (action  (run atdgen -j ${<}))))
+
+(library
+ ((name iocaml_kernel)
+  (public_name iocaml-kernel)
+  (wrapped false)
+  
+  (preprocess
+   (per_module
+    ((action (run ${bin:cppo} -V OCAML:${ocaml_version} ${<})) (exec))))
+  (libraries
+   (atdgen
+    (select iocaml_complete.ml from
+     (ocp-index.lib -> iocaml_ocp.ml)
+     (-> iocaml_no_ocp.ml))
+    lwt.unix
+    yojson
+    ctypes.foreign
+    uuidm))))

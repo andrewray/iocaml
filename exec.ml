@@ -1,11 +1,11 @@
 type ('a,'b) status = Ok of 'a | Error of 'b
 
 let get_error_loc = function 
-#if ocaml_version > (4,0)
+#if OCAML_VERSION > (4, 0, 0)
     | Syntaxerr.Error(x) -> Some(Syntaxerr.location_of_error x)
 #endif
     | Lexer.Error(_, loc)
-#if ocaml_version < (4,1)
+#if OCAML_VERSION < (4, 1, 0)
     | Typecore.Error(loc, _)
     | Typetexp.Error(loc, _) 
     | Typeclass.Error(loc, _) 
@@ -31,7 +31,7 @@ let run_cell_lb execution_count lb =
         Errors.report_error formatter exn;
         (match get_error_loc exn with
         | Some(loc) ->
-#if ocaml_version < (4,2)
+#if OCAML_VERSION < (4, 2, 0)
             ignore (Location.highlight_locations formatter loc Location.none);
 #else
             ignore (Location.highlight_locations formatter [loc]);

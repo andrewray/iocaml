@@ -379,17 +379,12 @@ module Lwt_zmq = struct
         )
       in
       let rec idle_loop () =
-        try_lwt
-          Lwt.wrap1 f s.socket
-        with
-        | Unix.Unix_error ( Unix.EAGAIN, _, _) -> begin
-          try_lwt
-            io_loop ()
-          with
-          | Break_event_loop -> idle_loop ()
-        end
-        | Unix.Unix_error (Unix.EINTR, _, _) -> 
-            idle_loop ()
+        Lwt.catch (fun () -> Lwt.wrap1 f s.socket)
+          (function
+            | Unix.Unix_error ( Unix.EAGAIN, _, _) ->
+              Lwt.catch io_loop (function Break_event_loop -> idle_loop())
+            | Unix.Unix_error (Unix.EINTR, _, _) ->
+              idle_loop ())
       in
       idle_loop ()
 
