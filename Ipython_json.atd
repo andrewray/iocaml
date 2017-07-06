@@ -217,4 +217,11 @@ type clear_output = {
     other : bool;
 }
 
+(*********************************************************************)
+(*********************************************************************)
 
+type comm_data = {
+    cd_comm_id <json name="comm_id"> : string;
+    cd_data <json name="data"> : dyn;
+    ?cd_target_name <json name="target_name"> : string option;
+}

@@ -380,7 +380,9 @@ module Shell = struct
             | Pyout(_) | Stream(_) | Display_data(_) 
             | Clear(_) -> handle_invalid_message ()
 
-            | Comm_open -> ()
+            | Comm_open(x) -> Iocaml_comm.comm_open x
+            | Comm_msg(x) -> Iocaml_comm.comm_msg x
+            | Comm_close(x) -> Iocaml_comm.comm_close x
         in
 
         let rec run () = 
