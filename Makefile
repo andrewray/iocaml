@@ -34,17 +34,17 @@ HAS_OCP = $(shell if ocamlfind query ocp-index.lib >/dev/null 2>&1; then echo 1;
 ifeq ($(HAS_OCP),1)
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,ocp-indent.lib,compiler-libs
 TOP_SRC = \
-	message.mli sockets.mli completion.mli exec.mli iocaml.mli \
-	message.ml  sockets.ml  completion.ml  exec.ml  iocaml.ml 
-TOP_OBJ =  message.cmo sockets.cmo completion.cmo exec.cmo iocaml.cmo 
-TOP_OCP = -I $(OCP_INDEX_INC) $(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE) 
+	message.mli sockets.mli iocaml_comm.mli completion.mli exec.mli iocaml.mli \
+	message.ml  sockets.ml  iocaml_comm.ml  completion.ml  exec.ml  iocaml.ml
+TOP_OBJ =  message.cmo sockets.cmo iocaml_comm.cmo completion.cmo exec.cmo iocaml.cmo
+TOP_OCP = -I $(OCP_INDEX_INC) $(OCP_INDEX_INC)/$(OCP_INDEX_ARCHIVE)
 else
 TOP_PKG=threads,uuidm,lwt.unix,ctypes.foreign,yojson,atdgen,compiler-libs
 TOP_SRC = \
-	message.mli sockets.mli exec.mli iocaml.mli \
-	message.ml  sockets.ml  exec.ml  iocaml.ml 
-TOP_OBJ =  message.cmo sockets.cmo exec.cmo iocaml.cmo 
-TOP_OCP = 
+	message.mli sockets.mli iocaml_comm.mli exec.mli iocaml.mli \
+	message.ml  sockets.ml  iocaml_comm.ml  exec.ml  iocaml.ml
+TOP_OBJ =  message.cmo sockets.cmo iocaml_comm.cmo exec.cmo iocaml.cmo
+TOP_OCP =
 endif
 
 top: lib

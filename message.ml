@@ -37,7 +37,9 @@ type message_content =
     | Clear of clear_output
     | Display_data of display_data
     (* custom messages *)
-    | Comm_open
+    | Comm_open of comm_data
+    | Comm_msg of comm_data
+    | Comm_close of comm_data
 
 let content_of_json hdr c =
     match hdr.msg_type with
@@ -64,7 +66,9 @@ let content_of_json hdr c =
     | "display_data" -> Display_data(display_data_of_string c)
     | "clear_output" -> Clear(clear_output_of_string c)
 
-    | "comm_open" -> Comm_open
+    | "comm_open" -> Comm_open(comm_data_of_string c)
+    | "comm_msg" -> Comm_msg(comm_data_of_string c)
+    | "comm_close" -> Comm_close(comm_data_of_string c)
 
     | _ -> failwith ("content_of_json: " ^ hdr.msg_type)
 
@@ -92,7 +96,9 @@ let json_of_content = function
     | Clear(x) -> string_of_clear_output x
     | Display_data(x) -> string_of_display_data x
 
-    | Comm_open -> "{}"
+    | Comm_open(x) -> string_of_comm_data x
+    | Comm_msg(x) -> string_of_comm_data x
+    | Comm_close(x) -> string_of_comm_data x
 
 let msg_type_of_content = function
     | Connect_request -> "connect_request"
@@ -118,7 +124,9 @@ let msg_type_of_content = function
     | Clear(_) -> "clear_output"
     | Display_data(_) -> "display_data"
 
-    | Comm_open -> "comm_open"
+    | Comm_open(_) -> "comm_open"
+    | Comm_msg(_) -> "comm_msg"
+    | Comm_close(_) -> "comm_close"
 
 type message =
     {
