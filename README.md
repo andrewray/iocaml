@@ -30,7 +30,7 @@ Installation requires opam and OCaml >= 4.01.0.  To use the OCaml server
 $ opam install iocaml
 ```
 
-which will install the kernels and server.  The individual kernels can be instaled with
+which will install the kernels and server.  The individual kernels can be installed with
 
 ```
 $ opam install iocaml-kernel
